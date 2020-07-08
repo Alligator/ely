@@ -91,15 +91,19 @@ async function runFile(fileName: string, args: Args) {
     return;
   }
 
-  const compiler = new Compiler();
-  const vm = new ElyVm();
-  compiler.debug = args.debug;
-  vm.debug = args.debug;
+  try {
+    const compiler = new Compiler();
+    const vm = new ElyVm();
+    compiler.debug = args.debug;
+    vm.debug = args.debug;
 
-  const program = compiler.compile(source);
-  const result = await vm.run(program);
-  if (result) {
-    console.log(result?.value);
+    const program = compiler.compile(source);
+    const result = await vm.run(program);
+    if (result) {
+      console.log(result?.value);
+    }
+  } catch(e) {
+    console.error(e.message);
   }
 }
 
