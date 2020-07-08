@@ -49,26 +49,31 @@ function lex(source: string) {
 
   let lineNo = -1;
   while (true) {
-    const token = lexer.nextToken();
+    try {
+      const token = lexer.nextToken();
 
-    if (lineNo !== lexer.line) {
-      lineNo = lexer.line
-      console.log(`\n${lineNo}: ${source.split(/\r?\n/)[lineNo - 1]}`);
-    }
+      if (lineNo !== lexer.line) {
+        lineNo = lexer.line
+        console.log(`\n${lineNo}: ${source.split(/\r?\n/)[lineNo - 1]}`);
+      }
 
 
-    switch (token.type) {
-      case TokenType.String:
-      case TokenType.Number:
-      case TokenType.Identifier:
-        console.log(`  ${token.type} "${token.value}"`);
+      switch (token.type) {
+        case TokenType.String:
+        case TokenType.Number:
+        case TokenType.Identifier:
+          console.log(`  ${token.type} "${token.value}"`);
+          break;
+        default:
+          console.log(`  ${token.type}`);
+      }
+
+      if (token.type === TokenType.Error || token.type === TokenType.EOF) {
         break;
-      default:
-        console.log(`  ${token.type}`);
-    }
-
-    if (token.type === TokenType.Error || token.type === TokenType.EOF) {
-      break;
+      }
+    } catch(e) {
+      console.error(e.message);
+      Deno.exit(1);
     }
   }
 }
