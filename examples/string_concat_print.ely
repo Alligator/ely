@@ -1,0 +1,3 @@
+var one := "alligator"
+var two := " is the best"
+print(one + two)

@@ -1,0 +1,9 @@
+var name := "alligator"
+
+print("Guess my name")
+
+while true do
+  guess := read_line()
+  if guess == name then
+  end
+end

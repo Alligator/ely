@@ -1,0 +1,8 @@
+var num := 0
+while num < 3 do
+  print("num is " + num)
+  if num == 1 then
+    print("one")
+  end
+  var num := num + 1
+end
