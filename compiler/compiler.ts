@@ -12,6 +12,8 @@ const rules: { [K in TokenType]?: Rule } = {
   [TokenType.ColonEqual]: { },
   [TokenType.EqualEqual]: { infixFn: c => c.binary() },
   [TokenType.Plus]: { infixFn: c => c.binary() },
+  [TokenType.Star]: { infixFn: c => c.binary() },
+  [TokenType.Slash]: { infixFn: c => c.binary() },
   [TokenType.Greater]: { infixFn: c => c.binary() },
   [TokenType.Less]: { infixFn: c => c.binary() },
   [TokenType.LParen]: { infixFn: c => c.functionCall() },
@@ -192,6 +194,12 @@ class Compiler {
     switch(token.type) {
       case TokenType.Plus:
         this.emit(OpCode.Add);
+        break;
+      case TokenType.Star:
+        this.emit(OpCode.Multiply);
+        break;
+      case TokenType.Slash:
+        this.emit(OpCode.Divide);
         break;
       case TokenType.Greater:
         this.emit(OpCode.Greater);
