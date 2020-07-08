@@ -8,10 +8,12 @@ enum OpCode {
   PopVariable = "PopVariable",
   PushImmediate = "PushImmediate",
   Add = "Add",
+  Sub = "Sub",
+  Multiply = "Multiply",
+  Divide = "Divide",
   Greater = "Greater",
   Less = "Less",
   Equal = "Equal",
-  Sub = "Sub",
   Call = "Call",
   Return = "Return",
   Jump = "Jump",
@@ -237,6 +239,48 @@ class ElyVm {
           }
 
           this.fatal("mismatched types for less");
+          break;
+        }
+
+        case OpCode.Multiply: {
+          const arg1 = this.pop();
+          const arg2 = this.pop();
+
+          if (!arg1 || !arg2) {
+            this.fatal("not enough arguments given to multiply");
+          }
+
+          // both strings or both numbers
+          if ((arg1.type === ValueType.Number && arg2.type === ValueType.Number)) {
+            const value = createValue(arg2.value * arg1.value);
+            if (value) {
+              this.push(value);
+              break;
+            }
+          }
+
+          this.fatal("mismatched types for multiply");
+          break;
+        }
+
+        case OpCode.Divide: {
+          const arg1 = this.pop();
+          const arg2 = this.pop();
+
+          if (!arg1 || !arg2) {
+            this.fatal("not enough arguments given to divide");
+          }
+
+          // both strings or both numbers
+          if ((arg1.type === ValueType.Number && arg2.type === ValueType.Number)) {
+            const value = createValue(arg2.value / arg1.value);
+            if (value) {
+              this.push(value);
+              break;
+            }
+          }
+
+          this.fatal("mismatched types for divide");
           break;
         }
 
