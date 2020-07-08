@@ -169,7 +169,7 @@ class Lexer {
 
     return {
       type: TokenType.Number,
-      value: this.source.substring(this.start + 1, this.pos - 1),
+      value: this.source.substring(this.start, this.pos),
     };
   }
 
