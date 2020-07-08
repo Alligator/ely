@@ -9,6 +9,8 @@ enum TokenType {
   ColonEqual = "ColonEqual",
   EqualEqual = "EqualEqual",
   Plus = "Plus",
+  Star = "Star",
+  Slash = "Slash",
   Greater = "Greater",
   Less = "Less",
 
@@ -36,6 +38,7 @@ interface TokenSimple {
     | TokenType.Var
     | TokenType.Equal | TokenType.ColonEqual | TokenType.EqualEqual
     | TokenType.Plus | TokenType.Greater | TokenType.Less
+    | TokenType.Star | TokenType.Slash
     | TokenType.LParen | TokenType.RParen
     | TokenType.While | TokenType.Do | TokenType.Break
     | TokenType.If | TokenType.Then | TokenType.Else
@@ -240,6 +243,8 @@ class Lexer {
       case '+': return { type: TokenType.Plus };
       case '>': return { type: TokenType.Greater };
       case '<': return { type: TokenType.Less };
+      case '*': return { type: TokenType.Star };
+      case '/': return { type: TokenType.Slash };
     }
 
     this.fatal(`unexpected character ${JSON.stringify(c)}`);
