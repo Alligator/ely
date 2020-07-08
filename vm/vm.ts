@@ -11,6 +11,7 @@ enum OpCode {
   Sub = "Sub",
   Multiply = "Multiply",
   Divide = "Divide",
+  Not = "Not",
   Greater = "Greater",
   Less = "Less",
   Equal = "Equal",
@@ -281,6 +282,17 @@ class ElyVm {
           }
 
           this.fatal("mismatched types for divide");
+          break;
+        }
+
+        case OpCode.Not: {
+          const arg = this.pop();
+
+          if (!arg || arg.type !== ValueType.Bool) {
+            this.fatal("expected a boolean as argument to not");
+          }
+
+          this.push(createValue(!arg.value));
           break;
         }
 

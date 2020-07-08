@@ -8,6 +8,7 @@ enum TokenType {
   Equal = "Equal",
   ColonEqual = "ColonEqual",
   EqualEqual = "EqualEqual",
+  BangEqual = "BangEqual",
   Plus = "Plus",
   Star = "Star",
   Slash = "Slash",
@@ -36,7 +37,7 @@ enum TokenType {
 interface TokenSimple {
   type: TokenType.EOF
     | TokenType.Var
-    | TokenType.Equal | TokenType.ColonEqual | TokenType.EqualEqual
+    | TokenType.Equal | TokenType.ColonEqual | TokenType.EqualEqual | TokenType.BangEqual
     | TokenType.Plus | TokenType.Greater | TokenType.Less
     | TokenType.Star | TokenType.Slash
     | TokenType.LParen | TokenType.RParen
@@ -231,6 +232,14 @@ class Lexer {
           return { type: TokenType.EqualEqual };
         }
         return { type : TokenType.Equal };
+      }
+
+      case '!': {
+        if (this.peek() === '=') {
+          this.advance();
+          return { type: TokenType.BangEqual };
+        }
+        break;
       }
 
       case '"': return this.string();

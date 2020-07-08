@@ -11,6 +11,7 @@ const rules: { [K in TokenType]?: Rule } = {
   [TokenType.Number]: { prefixFn: c => c.number() },
   [TokenType.ColonEqual]: { },
   [TokenType.EqualEqual]: { infixFn: c => c.binary() },
+  [TokenType.BangEqual]: { infixFn: c => c.binary() },
   [TokenType.Plus]: { infixFn: c => c.binary() },
   [TokenType.Star]: { infixFn: c => c.binary() },
   [TokenType.Slash]: { infixFn: c => c.binary() },
@@ -209,6 +210,10 @@ class Compiler {
         break;
       case TokenType.EqualEqual:
         this.emit(OpCode.Equal);
+        break;
+      case TokenType.BangEqual:
+        this.emit(OpCode.Equal);
+        this.emit(OpCode.Not);
         break;
       default:
         throw new Error(`parse: invalid operator ${token.type}`);

@@ -1,4 +1,4 @@
 var result := 2 * 3 + 4
-if result == 10 then
-  print("it worked!!")
+if result != 10 then
+  print("failed :(")
 end
