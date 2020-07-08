@@ -2,26 +2,50 @@ import { Lexer, TokenType, Token } from "../lexer.ts";
 import { RawValue, createValue, Value } from "../vm/value.ts";
 import { OpCode } from "../vm/vm.ts";
 
+enum Precedence {
+  None,
+  Assignment,
+  Equality,
+  Comparison,
+  Sum,
+  Product,
+  Unary,
+  Call,
+}
+
 type Rule = {
   prefixFn?: (c: Compiler) => void;
   infixFn?: (c: Compiler, token: Token) => void;
+  prec: Precedence;
 };
 
-const rules: { [K in TokenType]?: Rule } = {
-  [TokenType.Number]: { prefixFn: c => c.number() },
-  [TokenType.ColonEqual]: { },
-  [TokenType.EqualEqual]: { infixFn: c => c.binary() },
-  [TokenType.BangEqual]: { infixFn: c => c.binary() },
-  [TokenType.Plus]: { infixFn: c => c.binary() },
-  [TokenType.Star]: { infixFn: c => c.binary() },
-  [TokenType.Slash]: { infixFn: c => c.binary() },
-  [TokenType.Greater]: { infixFn: c => c.binary() },
-  [TokenType.Less]: { infixFn: c => c.binary() },
-  [TokenType.LParen]: { infixFn: c => c.functionCall() },
-  [TokenType.Identifier]: { prefixFn: c => c.identifier() },
-  [TokenType.String]: { prefixFn: c => c.literal() },
-  [TokenType.True]: { prefixFn: c => c.literal() },
-  [TokenType.False]: { prefixFn: c => c.literal() },
+const rules: { [K in TokenType]: Rule } = {
+  [TokenType.Number]:     { prec: Precedence.None,        prefixFn: c => c.number()                                      },
+  [TokenType.ColonEqual]: { prec: Precedence.Assignment,                                                                 },
+  [TokenType.EqualEqual]: { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
+  [TokenType.BangEqual]:  { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
+  [TokenType.Plus]:       { prec: Precedence.Sum,                                        infixFn: c => c.binary()        },
+  [TokenType.Star]:       { prec: Precedence.Product,                                    infixFn: c => c.binary()        },
+  [TokenType.Slash]:      { prec: Precedence.Product,                                    infixFn: c => c.binary()        },
+  [TokenType.Greater]:    { prec: Precedence.Comparison,                                 infixFn: c => c.binary()        },
+  [TokenType.Less]:       { prec: Precedence.Comparison,                                 infixFn: c => c.binary()        },
+  [TokenType.LParen]:     { prec: Precedence.Call,                                       infixFn: c => c.functionCall()  },
+  [TokenType.Identifier]: { prec: Precedence.None,        prefixFn: c => c.identifier()                                  },
+  [TokenType.String]:     { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
+  [TokenType.True]:       { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
+  [TokenType.False]:      { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
+  [TokenType.EOF]:        { prec: Precedence.None                                                                        },
+  [TokenType.Var]:        { prec: Precedence.None                                                                        },
+  [TokenType.Equal]:      { prec: Precedence.None                                                                        },
+  [TokenType.RParen]:     { prec: Precedence.None                                                                        },
+  [TokenType.While]:      { prec: Precedence.None                                                                        },
+  [TokenType.Do]:         { prec: Precedence.None                                                                        },
+  [TokenType.Break]:      { prec: Precedence.None                                                                        },
+  [TokenType.If]:         { prec: Precedence.None                                                                        },
+  [TokenType.Else]:       { prec: Precedence.None                                                                        },
+  [TokenType.Then]:       { prec: Precedence.None                                                                        },
+  [TokenType.End]:        { prec: Precedence.None                                                                        },
+  [TokenType.Error]:      { prec: Precedence.None                                                                        },
 };
 
 class Compiler {
@@ -158,7 +182,7 @@ class Compiler {
     this.consume(TokenType.End);
   }
 
-  expression() {
+  expression(precedence: Precedence = Precedence.Assignment) {
     this.debugLog('expression');
     this.advance();
 
@@ -174,12 +198,11 @@ class Compiler {
       prefix.prefixFn(this);
     }
 
-    const infixToken = this.current;
-    const infix = rules[infixToken.type];
-
-    if (infix && infix.infixFn) {
-      // not infix, carry on
-      infix.infixFn(this, token);
+    while (precedence <= rules[this.current.type].prec) {
+      const infix = rules[this.current.type];
+      if (infix.infixFn) {
+        infix.infixFn(this, token);
+      }
     }
   }
 
@@ -188,9 +211,10 @@ class Compiler {
     this.advance();
 
     const token = this.previous;
+    const precedence = rules[token.type]?.prec;
 
     // compile the right side (the left side is already compiled)
-    this.expression();
+    this.expression(precedence);
 
     switch(token.type) {
       case TokenType.Plus:

@@ -1,4 +1,11 @@
-var result := 2 * 3 + 4
-if result != 10 then
+if 2 * 3 + 4 != 10 then
+  print("failed :(")
+end
+
+if 2 + 3 * 4 != 14 then
+  print("failed :(")
+end
+
+if 4 / 2 + 2 != 4 then
   print("failed :(")
 end
