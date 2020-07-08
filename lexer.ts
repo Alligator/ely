@@ -178,16 +178,12 @@ class Lexer {
     let lineStart = this.pos;
     let lineEnd = this.pos;
 
-    while (lineStart > 0) {
-      if (this.source[lineStart] !== '\n') {
-        lineStart--;
-      }
+    while (lineStart > 0 && this.source[lineStart - 1] !== '\n') {
+      lineStart--;
     }
 
-    while (lineEnd < this.source.length) {
-      if (this.source[lineEnd] !== '\n') {
-        lineEnd++;
-      }
+    while (lineEnd < this.source.length && this.source[lineEnd + 1] !== '\n') {
+      lineEnd++;
     }
 
     let errMsg = `flagrant syntax error on line ${this.line}\n`;
