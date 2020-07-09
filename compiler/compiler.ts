@@ -67,6 +67,11 @@ class Compiler {
   }
 
 
+  fatal(msg: string): never {
+    throw new Error(this.lexer.getMessageAtCurrentToken(msg));
+  }
+
+
   advance() {
     this.previous = this.current;
     this.current = this.lexer.nextToken();
@@ -78,7 +83,7 @@ class Compiler {
       return;
     }
 
-    throw new Error(`expected ${type} but found ${this.current?.type}`);
+    this.fatal(`expected ${type} but found ${this.current?.type}`);
   }
 
 
@@ -99,7 +104,7 @@ class Compiler {
       return;
     }
 
-    throw new Error(`expected a number but found ${this.previous}`);
+    this.fatal(`expected a number but found ${this.previous}`);
   }
 
   statement() {
@@ -169,7 +174,7 @@ class Compiler {
       }
 
       default:
-        throw new Error(`parse: expected a statement`);
+        this.fatal(`parse: expected a statement`);
         break;
     }
   }
@@ -190,7 +195,7 @@ class Compiler {
     const prefix = rules[token.type];
 
     if (!prefix) {
-      throw new Error(`parse: could not parse ${JSON.stringify(token)}`);
+      this.fatal(`parse: could not parse ${JSON.stringify(token)}`);
     }
 
     if (prefix.prefixFn) {
@@ -240,7 +245,7 @@ class Compiler {
         this.emit(OpCode.Not);
         break;
       default:
-        throw new Error(`parse: invalid operator ${token.type}`);
+        this.fatal(`parse: invalid operator ${token.type}`);
     }
   }
 
@@ -250,11 +255,13 @@ class Compiler {
     const name = this.previous;
 
     if (name.type !== TokenType.Identifier) {
-      throw new Error("parse: expected an identifier");
+      this.fatal("parse: expected an identifier");
     }
 
     this.consume(TokenType.LParen);
-    this.expression();
+    if (this.current.type !== TokenType.RParen) {
+      this.expression();
+    }
     this.consume(TokenType.RParen);
 
     this.emit(OpCode.Call);
@@ -286,7 +293,7 @@ class Compiler {
       }
 
       default:
-        throw new Error("parse: literal must be string or number");
+        this.fatal("parse: literal must be string or number");
     }
   }
 
@@ -295,7 +302,7 @@ class Compiler {
 
     const token = this.previous;
     if (token.type !== TokenType.Identifier) {
-      throw new Error("parse: expected an identifier");
+      this.fatal("parse: expected an identifier");
     }
 
     this.emit(OpCode.PushVariable);

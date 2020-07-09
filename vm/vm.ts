@@ -67,8 +67,6 @@ class ElyVm {
   }
 
   fatal(msg: string): never {
-    console.error("emv:", this.env);
-    console.error("stack:", this.stack);
     throw new Error(`error at ${this.programCounter}: ${msg}`);
   }
 

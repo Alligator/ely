@@ -175,7 +175,7 @@ class Lexer {
   }
 
 
-  private fatal(msg: string) {
+  getMessageAtCurrentToken(msg: string): string {
     let lineStart = this.pos;
     let lineEnd = this.pos;
 
@@ -187,13 +187,17 @@ class Lexer {
       lineEnd++;
     }
 
-    let errMsg = `flagrant syntax error on line ${this.line}\n`;
+    let errMsg = `flagrant error on line ${this.line}\n`;
     errMsg += `${msg}\n`;
     errMsg += `    ${this.source.substring(lineStart, lineEnd)}\n    `;
     errMsg += new Array(this.pos - lineStart - 1).fill(' ').join('');
     errMsg += '^';
 
-    throw new Error(errMsg);
+    return errMsg;
+  }
+
+  private fatal(msg: string) {
+    throw new Error(this.getMessageAtCurrentToken(msg));
   }
 
 
