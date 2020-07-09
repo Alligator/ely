@@ -60,6 +60,10 @@ class ElyVm {
 
       return createValue("");
     });
+
+    this.addNativeFunction("str", (val: Value) => {
+      return createValue(val.value.toString());
+    });
   }
 
   fatal(msg: string): never {
