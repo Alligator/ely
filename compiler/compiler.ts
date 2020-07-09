@@ -94,7 +94,7 @@ class Compiler {
 
   number() {
     if (this.previous && this.previous.type === TokenType.Number) {
-      const value = createValue(parseInt(this.previous.value, 10));
+      const value = createValue(parseFloat(this.previous.value));
       this.emitConstant(value);
       return;
     }

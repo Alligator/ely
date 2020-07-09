@@ -164,7 +164,7 @@ class Lexer {
   }
 
   private number(): Token {
-    while (this.isNumeric(this.peek())) {
+    while (this.isNumeric(this.peek()) || this.peek() === ".") {
       this.advance();
     }
 

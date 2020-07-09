@@ -1,0 +1,11 @@
+if str(17) != "17" then
+  print("failed on 17 :(")
+end
+
+if str(1.7) != "1.7" then
+  print("failed on 1.7 :(")
+end
+
+if str(0.17) != "0.17" then
+  print("failed on 0.17 :(")
+end
