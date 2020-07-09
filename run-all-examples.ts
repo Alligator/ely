@@ -4,6 +4,9 @@ for await (const file of Deno.readDir("examples")) {
     const p = Deno.run({
       cmd: ["deno", "run", "-A", "main.ts", `examples/${file.name}`],
     });
-    await p.status();
+    const status = await p.status();
+    if (!status.success) {
+      break;
+    }
   }
 }
