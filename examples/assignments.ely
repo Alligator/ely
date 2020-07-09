@@ -1,0 +1,9 @@
+var count = 3
+if count != 3 then
+  print("how the heck did we fail this? :(")
+end
+
+count = 5
+if count != 5 then
+  print("failed reassingment :(")
+end

@@ -4,8 +4,8 @@ import { disassembleNextOpCode } from "./disasm.ts";
 enum OpCode {
   Constant = "Constant",
   DefineLocal = "DefineLocal",
+  SetLocal = "SetLocal",
   PushVariable = "PushVariable",
-  PopVariable = "PopVariable",
   PushImmediate = "PushImmediate",
   Add = "Add",
   Sub = "Sub",
@@ -96,6 +96,19 @@ class ElyVm {
     this.fatal(`attempted to load unknown variable ${name}`);
   }
 
+  findEnvForVariable(name: string): Environment | undefined {
+    let currentEnv = this.env;
+    while (true) {
+      if (Object.keys(currentEnv.values).includes(name)) {
+        return currentEnv;
+      } else if (currentEnv.parent) {
+        currentEnv = currentEnv.parent;
+      } else {
+        break;
+      }
+    }
+  }
+
   read(): RawValue {
     return this.code[this.programCounter++];
   }
@@ -175,6 +188,11 @@ class ElyVm {
             this.fatal("got non string as variable name");
           }
 
+          const env = this.findEnvForVariable(name);
+          if (env) {
+            this.fatal(`attempted to redefine variable ${name}`);
+          }
+
           const value = this.pop();
           if (typeof value === "undefined") {
             this.fatal("empty when assigning a variable");
@@ -182,6 +200,28 @@ class ElyVm {
 
           this.env.values[name] = value;
           break;
+        }
+
+        case OpCode.SetLocal: {
+          const name = this.read();
+          if (typeof name !== "string") {
+            this.fatal("got non string as variable name");
+          }
+
+          const env = this.findEnvForVariable(name);
+
+          if (typeof env === "undefined") {
+            this.fatal(`attempted to set unknown variable ${name}`);
+          }
+
+          const value = this.pop();
+          if (typeof value === "undefined") {
+            this.fatal("empty when assigning a variable");
+          }
+
+          env.values[name] = value;
+          break;
+
         }
 
         case OpCode.Add: {

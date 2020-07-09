@@ -21,7 +21,6 @@ type Rule = {
 
 const rules: { [K in TokenType]: Rule } = {
   [TokenType.Number]:     { prec: Precedence.None,        prefixFn: c => c.number()                                      },
-  [TokenType.ColonEqual]: { prec: Precedence.Assignment,                                                                 },
   [TokenType.EqualEqual]: { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.BangEqual]:  { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.Plus]:       { prec: Precedence.Sum,                                        infixFn: c => c.binary()        },
@@ -36,7 +35,7 @@ const rules: { [K in TokenType]: Rule } = {
   [TokenType.False]:      { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
   [TokenType.EOF]:        { prec: Precedence.None                                                                        },
   [TokenType.Var]:        { prec: Precedence.None                                                                        },
-  [TokenType.Equal]:      { prec: Precedence.None                                                                        },
+  [TokenType.Equal]:      { prec: Precedence.Assignment                                                                  },
   [TokenType.RParen]:     { prec: Precedence.None                                                                        },
   [TokenType.While]:      { prec: Precedence.None                                                                        },
   [TokenType.Do]:         { prec: Precedence.None                                                                        },
@@ -119,7 +118,7 @@ class Compiler {
         const name = this.previous;
 
         if (name.type === TokenType.Identifier) {
-          this.consume(TokenType.ColonEqual);
+          this.consume(TokenType.Equal);
 
           this.expression();
 
@@ -168,13 +167,8 @@ class Compiler {
         break;
       }
 
-      case TokenType.Identifier: {
-        this.expression();
-        break;
-      }
-
       default:
-        this.fatal(`parse: expected a statement`);
+        this.expression();
         break;
     }
   }
@@ -305,8 +299,15 @@ class Compiler {
       this.fatal("parse: expected an identifier");
     }
 
-    this.emit(OpCode.PushVariable);
-    this.emit(token.value);
+    if (this.current.type === TokenType.Equal) {
+      this.consume(TokenType.Equal);
+      this.expression();
+      this.emit(OpCode.SetLocal);
+      this.emit(token.value);
+    } else {
+      this.emit(OpCode.PushVariable);
+      this.emit(token.value);
+    }
   }
 
 
