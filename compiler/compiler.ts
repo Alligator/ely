@@ -24,6 +24,7 @@ const rules: { [K in TokenType]: Rule } = {
   [TokenType.EqualEqual]: { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.BangEqual]:  { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.Plus]:       { prec: Precedence.Sum,                                        infixFn: c => c.binary()        },
+  [TokenType.Minus]:      { prec: Precedence.Sum,                                        infixFn: c => c.binary()        },
   [TokenType.Star]:       { prec: Precedence.Product,                                    infixFn: c => c.binary()        },
   [TokenType.Slash]:      { prec: Precedence.Product,                                    infixFn: c => c.binary()        },
   [TokenType.Greater]:    { prec: Precedence.Comparison,                                 infixFn: c => c.binary()        },
@@ -218,6 +219,9 @@ class Compiler {
     switch(token.type) {
       case TokenType.Plus:
         this.emit(OpCode.Add);
+        break;
+      case TokenType.Minus:
+        this.emit(OpCode.Sub);
         break;
       case TokenType.Star:
         this.emit(OpCode.Multiply);

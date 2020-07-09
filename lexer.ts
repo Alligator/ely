@@ -9,6 +9,7 @@ enum TokenType {
   EqualEqual = "EqualEqual",
   BangEqual = "BangEqual",
   Plus = "Plus",
+  Minus = "Minus",
   Star = "Star",
   Slash = "Slash",
   Greater = "Greater",
@@ -37,7 +38,7 @@ interface TokenSimple {
   type: TokenType.EOF
     | TokenType.Var
     | TokenType.Equal | TokenType.EqualEqual | TokenType.BangEqual
-    | TokenType.Plus | TokenType.Greater | TokenType.Less
+    | TokenType.Plus | TokenType.Minus | TokenType.Greater | TokenType.Less
     | TokenType.Star | TokenType.Slash
     | TokenType.LParen | TokenType.RParen
     | TokenType.While | TokenType.Do | TokenType.Break
@@ -239,6 +240,7 @@ class Lexer {
       case '(': return { type: TokenType.LParen };
       case ')': return { type: TokenType.RParen };
       case '+': return { type: TokenType.Plus };
+      case '-': return { type: TokenType.Minus };
       case '>': return { type: TokenType.Greater };
       case '<': return { type: TokenType.Less };
       case '*': return { type: TokenType.Star };

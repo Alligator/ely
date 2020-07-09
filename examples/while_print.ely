@@ -1,8 +1,14 @@
 var num = 0
-while num < 3 do
-  print("num is " + num)
-  if num == 1 then
-    print("one")
-  end
+var loops = 3
+
+while loops > 0 do
+  loops = loops - 1
   num = num + 1
+end
+
+if loops != 0 then
+  print("failed :(")
+end
+if num != 3 then
+  print("failed :(")
 end

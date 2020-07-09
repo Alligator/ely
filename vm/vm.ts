@@ -261,6 +261,30 @@ class ElyVm {
           break;
         }
 
+        case OpCode.Greater: {
+          const arg1 = this.pop();
+          const arg2 = this.pop();
+
+          if (!arg1 || !arg2) {
+            this.fatal("not enough arguments given to greater");
+          }
+
+          // both strings or both numbers
+          if (
+            (arg1.type === ValueType.String && arg2.type === ValueType.String)
+            || (arg1.type === ValueType.Number && arg2.type === ValueType.Number)
+          ) {
+            const value = createValue(arg2.value > arg1.value);
+            if (value) {
+              this.push(value);
+              break;
+            }
+          }
+
+          this.fatal("mismatched types for greater");
+          break;
+        }
+
         case OpCode.Less: {
           const arg1 = this.pop();
           const arg2 = this.pop();
@@ -274,7 +298,7 @@ class ElyVm {
             (arg1.type === ValueType.String && arg2.type === ValueType.String)
             || (arg1.type === ValueType.Number && arg2.type === ValueType.Number)
           ) {
-            const value = createValue(arg2.value as any < arg1.value);
+            const value = createValue(arg2.value < arg1.value);
             if (value) {
               this.push(value);
               break;
