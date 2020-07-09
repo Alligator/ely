@@ -1,4 +1,4 @@
-import { Lexer, TokenType, Token } from "../lexer.ts";
+import { Lexer, TokenType, Token, tokenToString } from "../lexer.ts";
 import { RawValue, createValue, Value } from "../vm/value.ts";
 import { OpCode } from "../vm/vm.ts";
 
@@ -48,6 +48,13 @@ const rules: { [K in TokenType]: Rule } = {
   [TokenType.Error]:      { prec: Precedence.None                                                                        },
 };
 
+function padOrTruncateString(str: string, length: number): string {
+  if (str.length >= length) {
+    return str.substring(0, length - 3) + "...";
+  }
+  return `${str}                                   `.substring(0, length);
+}
+
 class Compiler {
   output: Array<RawValue> = [];
   lexer: Lexer;
@@ -55,15 +62,28 @@ class Compiler {
   previous: Token = { type: TokenType.Error }
   debug: boolean = false;
 
+  callDepth = 0;
+
   constructor() {
     this.lexer = new Lexer("");
   }
 
-
-  debugLog(msg: string) {
+  private debugEnter(msg: string) {
+    this.callDepth++;
     if (this.debug) {
-      console.error(`${msg}\n   cur: ${JSON.stringify(this.current)}\n  prev: ${JSON.stringify(this.previous)}`);
+      const padding = new Array(this.callDepth).fill(' ').join('');
+      let message = padOrTruncateString(`${padding}${msg}`, 20);
+      message += ' ';
+      message += padOrTruncateString(tokenToString(this.current), 20);
+      message += ' ';
+      message += padOrTruncateString(tokenToString(this.previous), 20);
+      console.error(message);
+      // console.error(`${msg}\n   cur: ${JSON.stringify(this.current)}\n  prev: ${JSON.stringify(this.previous)}`);
     }
+  }
+
+  private debugLeave() {
+    this.callDepth--;
   }
 
 
@@ -98,9 +118,13 @@ class Compiler {
 
 
   number() {
+    this.debugEnter("number");
+
     if (this.previous && this.previous.type === TokenType.Number) {
       const value = createValue(parseFloat(this.previous.value));
       this.emitConstant(value);
+
+      this.debugLeave();
       return;
     }
 
@@ -108,7 +132,7 @@ class Compiler {
   }
 
   statement() {
-    this.debugLog('statement');
+    this.debugEnter('statement');
 
     switch (this.current.type) {
       case TokenType.Var: {
@@ -172,18 +196,24 @@ class Compiler {
         this.expression();
         break;
     }
+
+    this.debugLeave();
   }
 
   block() {
-    this.debugLog('block');
+    this.debugEnter('block');
+
     while (this.current.type != TokenType.End) {
       this.statement();
     }
     this.consume(TokenType.End);
+
+    this.debugLeave();
   }
 
   expression(precedence: Precedence = Precedence.Assignment) {
-    this.debugLog('expression');
+    this.debugEnter('expression');
+
     this.advance();
 
     const token = this.previous;
@@ -204,10 +234,13 @@ class Compiler {
         infix.infixFn(this, token);
       }
     }
+
+    this.debugLeave();
   }
 
   binary() {
-    this.debugLog('binary');
+    this.debugEnter('binary');
+
     this.advance();
 
     const token = this.previous;
@@ -245,10 +278,12 @@ class Compiler {
       default:
         this.fatal(`parse: invalid operator ${token.type}`);
     }
+
+    this.debugLeave();
   }
 
   functionCall() {
-    this.debugLog("functionCall");
+    this.debugEnter("functionCall");
 
     const name = this.previous;
 
@@ -264,10 +299,12 @@ class Compiler {
 
     this.emit(OpCode.Call);
     this.emit(1); // num of args
+
+    this.debugLeave();
   }
 
   literal() {
-    this.debugLog("literal");
+    this.debugEnter("literal");
 
     const token = this.previous;
 
@@ -293,10 +330,12 @@ class Compiler {
       default:
         this.fatal("parse: literal must be string or number");
     }
+
+    this.debugLeave();
   }
 
   identifier() {
-    this.debugLog("identifier");
+    this.debugEnter("identifier");
 
     const token = this.previous;
     if (token.type !== TokenType.Identifier) {
@@ -312,6 +351,8 @@ class Compiler {
       this.emit(OpCode.PushVariable);
       this.emit(token.value);
     }
+
+    this.debugLeave();
   }
 
 

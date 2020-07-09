@@ -55,6 +55,17 @@ type Token
   = TokenSimple
   | TokenStringValue;
 
+function tokenToString(token: Token): string {
+  if (
+    token.type === TokenType.Identifier
+    || token.type === TokenType.String
+    || token.type === TokenType.Number
+  ) {
+    return `${token.type}(${token.value})`;
+  }
+
+  return token.type;
+}
 
 class Lexer {
   source: string;
@@ -257,4 +268,5 @@ export {
   Lexer,
   Token,
   TokenType,
+  tokenToString,
 };
