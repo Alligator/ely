@@ -1,6 +1,5 @@
 # todo
 
-- else
 - comments
 - clean up runtime errors in the vm
 - functions

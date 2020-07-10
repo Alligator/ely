@@ -1,0 +1,11 @@
+if true then
+  print("it worked")
+else
+  print("it failed")
+end
+
+if false then
+  print("it failed")
+else
+  print("it worked")
+end

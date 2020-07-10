@@ -119,8 +119,9 @@ class Compiler {
   }
 
 
-  emit(rawVal: RawValue) {
+  emit(rawVal: RawValue): number {
     this.output.push(rawVal);
+    return this.output.length - 1;
   }
 
   emitConstant(val: Value) {
@@ -203,7 +204,8 @@ class Compiler {
         const endJump = this.output.length;
         this.emit(999);
 
-        this.block();
+        this.block([TokenType.End]);
+        this.consume(TokenType.End);
 
         this.emit(OpCode.Jump);
         this.emit(startPos);
@@ -220,13 +222,27 @@ class Compiler {
         this.consume(TokenType.Then);
 
         this.emit(OpCode.JumpIfFalse);
-        const endJump = this.output.length;
-        this.emit(999);
+        const thenJump = this.emit(999);
 
-        this.block();
+        this.block([TokenType.Else, TokenType.End]);
 
-        const endPos = this.output.length;
-        this.output[endJump] = endPos;
+        this.emit(OpCode.Jump);
+        const elseJump = this.emit(999);
+
+        // patch jump from them => else
+        this.output[thenJump] = elseJump + 1;
+
+        if (this.current.type as any === TokenType.Else) {
+          this.consume(TokenType.Else);
+          this.block([TokenType.End]);
+          this.consume(TokenType.End);
+
+          // patch jump from else => end
+          this.output[elseJump] = this.output.length;
+        } else {
+          this.consume(TokenType.End);
+        }
+
         break;
       }
 
@@ -238,35 +254,36 @@ class Compiler {
     this.debugLeave();
   }
 
-  block() {
+  block(endings: Array<TokenType>) {
     this.debugEnter('block');
 
     this.beginScope();
-    while (this.current.type != TokenType.End) {
+    while (!endings.includes(this.current.type)) {
       this.statement();
     }
-    this.consume(TokenType.End);
-    this.endScope();
 
+    this.endScope();
     this.debugLeave();
   }
 
   expression(precedence: Precedence = Precedence.Assignment) {
     this.debugEnter('expression');
 
-    this.advance();
-
-    const token = this.previous;
+    const token = this.current;
     const prefix = rules[token.type];
 
     if (!prefix) {
       this.fatal(`parse: could not parse ${JSON.stringify(token)}`);
     }
 
-    if (prefix.prefixFn) {
-      // compile the left side
-      prefix.prefixFn(this);
+    if (typeof prefix.prefixFn === "undefined") {
+      this.fatal(`parse: could not parse ${JSON.stringify(token)}`);
     }
+
+    this.advance();
+
+    // compile the left side
+    prefix.prefixFn(this);
 
     while (precedence <= rules[this.current.type].prec) {
       const infix = rules[this.current.type];

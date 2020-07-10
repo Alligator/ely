@@ -194,7 +194,7 @@ class Lexer {
       lineStart--;
     }
 
-    while (lineEnd < this.source.length && this.source[lineEnd + 1] !== '\n') {
+    while (lineEnd < this.source.length && this.source[lineEnd] !== '\n') {
       lineEnd++;
     }
 
