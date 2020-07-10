@@ -111,6 +111,13 @@ class Lexer {
             this.advance();
           }
           break;
+        case '#': {
+          // comments
+          while (!this.isAtEnd && this.peek() !== '\n') {
+            this.advance();
+          }
+          break;
+        }
         default:
           return;
       }
