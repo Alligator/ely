@@ -3,10 +3,15 @@ import { disassembleNextOpCode } from "./disasm.ts";
 
 enum OpCode {
   Constant = "Constant",
-  DefineLocal = "DefineLocal",
+  DefineGlobal = "DefineGlobal",
+  SetGlobal = "SetGlobal",
+  GetGlobal = "GetGlobal",
+
   SetLocal = "SetLocal",
-  PushVariable = "PushVariable",
+  GetLocal = "GetLocal",
+
   PushImmediate = "PushImmediate",
+  Pop = "Pop",
   Add = "Add",
   Sub = "Sub",
   Multiply = "Multiply",
@@ -23,15 +28,9 @@ enum OpCode {
   Halt = "Halt",
 }
 
-interface Environment {
-  values: { [name: string]: Value },
-  parent?: Environment;
-};
-
 class ElyVm {
   code: Array<RawValue> = [];
-  globalEnv: Environment = { values : {} };
-  env: Environment = { values : {} };
+  globals: { [name: string]: Value } = {};
   stack: Array<Value> = [];
   programCounter: number = 0;
   debug: boolean = false;
@@ -71,42 +70,10 @@ class ElyVm {
   }
 
   addNativeFunction(name: string, fn: Function) {
-    this.globalEnv.values[name] = {
+    this.globals[name] = {
       type: ValueType.NativeFunction,
       value: fn,
     };
-  }
-
-  findVariable(name: string): Value {
-    let currentEnv = this.env;
-    while (true) {
-      if (currentEnv.values[name]) {
-        return currentEnv.values[name];
-      } else if (currentEnv.parent) {
-        currentEnv = currentEnv.parent;
-      } else {
-        break;
-      }
-    }
-
-    if (this.globalEnv.values[name]) {
-      return this.globalEnv.values[name];
-    }
-
-    this.fatal(`attempted to load unknown variable ${name}`);
-  }
-
-  findEnvForVariable(name: string): Environment | undefined {
-    let currentEnv = this.env;
-    while (true) {
-      if (Object.keys(currentEnv.values).includes(name)) {
-        return currentEnv;
-      } else if (currentEnv.parent) {
-        currentEnv = currentEnv.parent;
-      } else {
-        break;
-      }
-    }
   }
 
   read(): RawValue {
@@ -163,13 +130,17 @@ class ElyVm {
           break;
         }
 
-        case OpCode.PushVariable: {
+        case OpCode.GetGlobal: {
           const name = this.read();
           if (typeof name !== "string") {
-            this.fatal("got non string as variable name");
+            this.fatal("got non string as global name");
           }
 
-          const value = this.findVariable(name);
+          if (!(name in this.globals)) {
+            this.fatal(`attempted to get unknown global ${name}`);
+          }
+
+          const value = this.globals[name];
           this.push(value);
           break;
         }
@@ -182,46 +153,73 @@ class ElyVm {
           break;
         }
 
-        case OpCode.DefineLocal: {
+        case OpCode.Pop: {
+          this.pop();
+          break;
+        }
+
+        case OpCode.DefineGlobal: {
           const name = this.read();
           if (typeof name !== "string") {
-            this.fatal("got non string as variable name");
+            this.fatal("got non string as global name");
           }
 
-          const env = this.findEnvForVariable(name);
-          if (env) {
-            this.fatal(`attempted to redefine variable ${name}`);
+          if (name in this.globals) {
+            this.fatal(`attempted to redefine global ${name}`);
           }
 
           const value = this.pop();
           if (typeof value === "undefined") {
-            this.fatal("empty when assigning a variable");
+            this.fatal("empty when assigning a global");
           }
 
-          this.env.values[name] = value;
+          this.globals[name] = value;
+          break;
+        }
+
+        case OpCode.SetGlobal: {
+          const name = this.read();
+          if (typeof name !== "string") {
+            this.fatal("got non string as global name");
+          }
+
+          if (!(name in this.globals)) {
+            this.fatal(`attempted to set unknown global ${name}`);
+          }
+
+          const value = this.pop();
+          if (typeof value === "undefined") {
+            this.fatal("empty when assigning a global");
+          }
+
+          this.globals[name] = value;
+          break;
+        }
+
+        case OpCode.GetLocal: {
+          const index = this.read();
+          if (typeof index !== "number") {
+            this.fatal("expected a number as a local variable index");
+          }
+
+          this.push(this.stack[index]);
           break;
         }
 
         case OpCode.SetLocal: {
-          const name = this.read();
-          if (typeof name !== "string") {
-            this.fatal("got non string as variable name");
-          }
-
-          const env = this.findEnvForVariable(name);
-
-          if (typeof env === "undefined") {
-            this.fatal(`attempted to set unknown variable ${name}`);
+          const index = this.read();
+          if (typeof index !== "number") {
+            this.fatal("expected a number as a local variable index");
           }
 
           const value = this.pop();
           if (typeof value === "undefined") {
-            this.fatal("empty when assigning a variable");
+            this.fatal("attempted to set a variable with no value");
           }
 
-          env.values[name] = value;
-          break;
+          this.stack[index] = value;
 
+          break;
         }
 
         case OpCode.Add: {
@@ -371,10 +369,7 @@ class ElyVm {
           }
 
           // both strings or both numbers
-          if (
-            (arg1.type === ValueType.String && arg2.type === ValueType.String)
-            || (arg1.type === ValueType.Number && arg2.type === ValueType.Number)
-          ) {
+          if (arg1.type === arg2.type) {
             const value = createValue(arg2.value as any === arg1.value);
             if (value) {
               this.push(value);

@@ -10,6 +10,8 @@ function oneArg(programCounter: number, code: Array<RawValue>): string {
       return `${op} "${arg.value}"`;
     case ValueType.Number:
       return `${op} ${arg.value}`;
+    case ValueType.Bool:
+      return `${op} ${arg.value}`;
     case ValueType.NativeFunction:
       return `${op} [native function]`;
     default:
@@ -22,14 +24,16 @@ function disassembleNextOpCode(programCounter: number, code: Array<RawValue>): s
 
   switch (op) {
     case OpCode.Constant:
-    case OpCode.DefineLocal:
+    case OpCode.DefineGlobal:
     case OpCode.PushImmediate:
-    case OpCode.PushVariable:
+    case OpCode.GetGlobal:
     case OpCode.Call:
     case OpCode.Jump:
     case OpCode.JumpIfNotEqual:
     case OpCode.JumpIfFalse:
+    case OpCode.SetGlobal:
     case OpCode.SetLocal:
+    case OpCode.GetLocal:
       return oneArg(programCounter, code);
     default:
       return op.toString();

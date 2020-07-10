@@ -55,12 +55,24 @@ function padOrTruncateString(str: string, length: number): string {
   return `${str}                                   `.substring(0, length);
 }
 
+type Locals = {
+  variables: { [name: string]: number },
+  parent: Locals | null;
+}
+
 class Compiler {
   output: Array<RawValue> = [];
   lexer: Lexer;
   current: Token = { type: TokenType.Error }
   previous: Token = { type: TokenType.Error }
   debug: boolean = false;
+
+  locals: Locals = {
+    variables: {},
+    parent: null,
+  };
+  localCount = 0;
+  scopeDepth = 0;
 
   callDepth = 0;
 
@@ -117,6 +129,28 @@ class Compiler {
   }
 
 
+  beginScope() {
+    const newLocals: Locals = {
+      variables: {},
+      parent: this.locals,
+    };
+    this.locals = newLocals;
+    this.scopeDepth++;
+  }
+
+  endScope() {
+    if (!this.locals.parent) {
+      this.fatal("ended a scope with no parent");
+    }
+    for (let i = 0; i < Object.keys(this.locals.variables).length; i++) {
+      this.emit(OpCode.Pop);
+      this.localCount--;
+    }
+    this.locals = this.locals.parent;
+    this.scopeDepth--;
+  }
+
+
   number() {
     this.debugEnter("number");
 
@@ -147,8 +181,12 @@ class Compiler {
 
           this.expression();
 
-          this.emit(OpCode.DefineLocal);
-          this.emit(name.value);
+          if (this.scopeDepth > 0) {
+            this.locals.variables[name.value] = this.localCount++;
+          } else {
+            this.emit(OpCode.DefineGlobal);
+            this.emit(name.value);
+          }
         }
         break;
       }
@@ -203,10 +241,12 @@ class Compiler {
   block() {
     this.debugEnter('block');
 
+    this.beginScope();
     while (this.current.type != TokenType.End) {
       this.statement();
     }
     this.consume(TokenType.End);
+    this.endScope();
 
     this.debugLeave();
   }
@@ -334,6 +374,19 @@ class Compiler {
     this.debugLeave();
   }
 
+  private findLocal(name: string): number | undefined {
+    let current: Locals | null = this.locals;
+    while (true) {
+      if (name in current.variables) {
+        return current.variables[name];
+      }
+      current = current.parent;
+      if (current === null) {
+        return;
+      }
+    }
+  }
+
   identifier() {
     this.debugEnter("identifier");
 
@@ -342,14 +395,24 @@ class Compiler {
       this.fatal("parse: expected an identifier");
     }
 
+    let arg: string | number | undefined = this.findLocal(token.value);
+    let getOp = OpCode.GetLocal;
+    let setOp = OpCode.SetLocal;
+
+    if (typeof arg === "undefined") {
+      arg = token.value;
+      getOp = OpCode.GetGlobal;
+      setOp = OpCode.SetGlobal;
+    }
+
     if (this.current.type === TokenType.Equal) {
       this.consume(TokenType.Equal);
       this.expression();
-      this.emit(OpCode.SetLocal);
-      this.emit(token.value);
+      this.emit(setOp);
+      this.emit(arg);
     } else {
-      this.emit(OpCode.PushVariable);
-      this.emit(token.value);
+      this.emit(getOp);
+      this.emit(arg);
     }
 
     this.debugLeave();

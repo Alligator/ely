@@ -103,7 +103,8 @@ async function runFile(fileName: string, args: Args) {
       console.log(result?.value);
     }
   } catch(e) {
-    console.error(e.message);
+    // console.error(e.message);
+    throw e;
   }
 }
 

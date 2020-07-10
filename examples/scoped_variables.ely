@@ -1,0 +1,32 @@
+var success = true
+var num = 5
+
+if true then
+  var num = 10
+  num = num + 1
+
+  if true then
+    var num = "hello"
+    num = num + " there"
+  end
+
+  if num != 11 then
+    success = false
+  end
+
+  var toot = "test"
+end
+
+var toot = 123
+if toot != 123 then
+  success = false
+end
+
+if num != 5 then
+  success = false
+end
+
+if success != true then
+  print("failed :(")
+end
+

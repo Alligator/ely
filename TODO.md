@@ -1,6 +1,5 @@
 # todo
 
-- scoped variables
 - else
 - comments
 - clean up runtime errors in the vm
