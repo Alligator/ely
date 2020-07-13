@@ -14,6 +14,8 @@ function oneArg(programCounter: number, code: Array<RawValue>): string {
       return `${op} ${arg.value}`;
     case ValueType.NativeFunction:
       return `${op} [native function]`;
+    case ValueType.Function:
+      return `${op} ${arg.name}()`;
     default:
       return op.toString();
   }

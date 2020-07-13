@@ -1,0 +1,19 @@
+function log(text)
+  print(text)
+end
+
+function addTwo(a)
+  return a + 2
+end
+
+log("hello from a function")
+var oneCall = addTwo(10)
+var twoCalls = addTwo(addTwo(10))
+
+if oneCall != 12 then
+  print("failed :(")
+end
+
+if twoCalls != 14 then
+  print("failed :(")
+end

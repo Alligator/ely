@@ -18,6 +18,9 @@ enum TokenType {
   LParen = "LParen",
   RParen = "RParen",
 
+  Function = "Function",
+  Return = "Return",
+
   While = "While",
   Do = "Do",
   Break = "Break",
@@ -41,6 +44,7 @@ interface TokenSimple {
     | TokenType.Plus | TokenType.Minus | TokenType.Greater | TokenType.Less
     | TokenType.Star | TokenType.Slash
     | TokenType.LParen | TokenType.RParen
+    | TokenType.Function | TokenType.Return
     | TokenType.While | TokenType.Do | TokenType.Break
     | TokenType.If | TokenType.Then | TokenType.Else
     | TokenType.True | TokenType.False
@@ -146,6 +150,9 @@ class Lexer {
     const value = this.source.substring(this.start, this.pos);
 
     switch (value) {
+
+      case "function": return { type: TokenType.Function };
+      case "return":   return { type: TokenType.Return };
 
       case "var":   return { type: TokenType.Var };
       case "while": return { type: TokenType.While };

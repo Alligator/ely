@@ -1,4 +1,4 @@
-import { Value, RawValue, createValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual } from "./value.ts";
+import { Value, RawValue, createValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual, Program } from "./value.ts";
 import { disassembleNextOpCode } from "./disasm.ts";
 
 enum OpCode {
@@ -28,10 +28,19 @@ enum OpCode {
   Halt = "Halt",
 }
 
+interface StackFrame {
+  callingCode: Program;
+  callingProgramCounter: number;
+  stackBase: number;
+  // TODO is this a good idea?
+  returnValue?: Value;
+}
+
 class ElyVm {
   code: Array<RawValue> = [];
   globals: { [name: string]: Value } = {};
   stack: Array<Value> = [];
+  callStack: Array<StackFrame> = [];
   programCounter: number = 0;
   debug: boolean = false;
 
@@ -89,6 +98,9 @@ class ElyVm {
     }
     return this.stack.pop();
   }
+  peek(num: number): Value | undefined {
+    return this.stack[this.stack.length - num - 1];
+  }
 
   async run(code: Array<RawValue>): Promise<Value | undefined> {
     this.code = code;
@@ -99,7 +111,7 @@ class ElyVm {
     }
 
     while (true) {
-      if (this.debug) {
+      if (this.debug && this.programCounter < this.code.length) {
         let msg = `  ${('000' + this.programCounter).slice(-4)} `;
         msg += disassembleNextOpCode(this.programCounter, this.code);
         const padding = Math.max(40 - msg.length, 0);
@@ -202,7 +214,11 @@ class ElyVm {
             this.fatal("expected a number as a local variable index");
           }
 
-          this.push(this.stack[index]);
+          let stackBase = 0;
+          if (this.callStack.length > 0) {
+            stackBase = this.callStack[this.callStack.length - 1].stackBase;
+          }
+          this.push(this.stack[index + stackBase]);
           break;
         }
 
@@ -407,28 +423,66 @@ class ElyVm {
             this.fatal("expected number for function argument count");
           }
 
+          const func = this.peek(argCount);
 
-          const args = [];
-          for (let i = 0; i < argCount; i++) {
-            args.push(this.pop());
+          if (!func) {
+            this.fatal("expection a function but got undefined");
           }
 
-          const func = this.pop();
-          if (!func || func.type !== ValueType.NativeFunction) {
-            this.fatal("expected function");
-          }
+          switch (func.type) {
+            case ValueType.NativeFunction: {
+              const args = [];
+              for (let i = 0; i < argCount; i++) {
+                args.push(this.pop());
+              }
+              const result = await func.value.apply(func.value, args);
 
-          const result = await func.value.apply(func.value, args);
-          if (result) {
-            this.push(result);
+              this.pop(); // pop the function
+
+              if (result) {
+                this.push(result);
+              }
+              break;
+            }
+
+            case ValueType.Function: {
+              this.callStack.push({
+                callingCode: this.code,
+                callingProgramCounter: this.programCounter,
+                stackBase: this.stack.length - argCount - 1,
+              });
+
+              await this.run(func.value);
+
+              const frame = this.callStack.pop();
+              if (frame) {
+                this.stack = this.stack.slice(0, frame.stackBase);
+                this.code = frame.callingCode;
+                this.programCounter = frame.callingProgramCounter;
+                if (frame.returnValue) {
+                  this.push(frame.returnValue);
+                }
+              } else {
+                this.fatal("ended a function with no stack frame. something is very wrong");
+              }
+
+              break;
+            }
+
+            default:
+              this.fatal(`expected a function but got ${func.type}`);
           }
           break;
         }
 
         case OpCode.Return: {
-          if (this.stack.length > 0) {
-            return this.pop();
+          const value = this.pop();
+          if (!value) {
+            this.fatal("return with no value");
           }
+
+          this.callStack[this.callStack.length - 1].returnValue = value;
+
           return;
         }
 

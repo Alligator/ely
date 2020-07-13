@@ -2,6 +2,7 @@ enum ValueType {
   String = "String",
   Number = "Number",
   Bool = "Bool",
+  Function = "Function",
   NativeFunction = "NativeFunction",
   Null = "Null",
 }
@@ -26,19 +27,35 @@ interface ValueNativeFunction {
   value: Function;
 }
 
+interface ValueFunction {
+  type: ValueType.Function;
+  name: string;
+  arity: number;
+  value: Program;
+}
+
 type Value =
   ValueString
   | ValueNumber
   | ValueBool
-  | ValueNativeFunction;
+  | ValueNativeFunction
+  | ValueFunction;
 
 type RawValue =
   number
   | string
   | boolean
-  | Function;
+  | Function
+  | ValueFunction;
+
+type Program = Array<RawValue>;
 
 function createValue(input: RawValue): Value {
+  // TODO ugly, ugly hack
+  if ((input as ValueFunction).name) {
+    return input as ValueFunction;
+  }
+
   if (typeof input === "number") {
     return {
       type: ValueType.Number,
@@ -63,6 +80,15 @@ function createValue(input: RawValue): Value {
   throw new Error(`unrecognised value type: ${input}`);
 }
 
+function createFunctionValue(name: string, arity: number, program: Program): Value {
+  return {
+    type: ValueType.Function,
+    value: program,
+    name,
+    arity,
+  };
+}
+
 function valueIsTruthy(val: Value): boolean {
   switch (val.type) {
     case ValueType.Bool:
@@ -85,23 +111,27 @@ function valuesAreEqual(val1: Value, val2: Value): boolean {
 }
 
 function valueToString(val: Value): string {
-  if (val.type === ValueType.Number) {
-    return val.value.toString();
+  switch (val.type) {
+    case ValueType.Number:
+      return val.value.toString();
+      case ValueType.String:
+        return `"${val.value}"`;
+      case ValueType.NativeFunction:
+        return `(native func)`;
+      case ValueType.Function:
+        return `${val.name}()`;
+      default:
+      return val.value.toString();
   }
-  if (val.type === ValueType.String) {
-    return `"${val.value}"`;
-  }
-  if (val.type === ValueType.NativeFunction) {
-    return `(native func)`;
-  }
-  return val.value.toString();
 }
 
 export {
   ValueType,
   Value,
   RawValue,
+  Program,
   createValue,
+  createFunctionValue,
   valueIsTruthy,
   valuesAreEqual,
   valueToString,

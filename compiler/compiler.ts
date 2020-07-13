@@ -1,5 +1,5 @@
 import { Lexer, TokenType, Token, tokenToString } from "../lexer.ts";
-import { RawValue, createValue, Value } from "../vm/value.ts";
+import { RawValue, createValue, Value, ValueType, Program, createFunctionValue } from "../vm/value.ts";
 import { OpCode } from "../vm/vm.ts";
 
 enum Precedence {
@@ -46,6 +46,8 @@ const rules: { [K in TokenType]: Rule } = {
   [TokenType.Then]:       { prec: Precedence.None                                                                        },
   [TokenType.End]:        { prec: Precedence.None                                                                        },
   [TokenType.Error]:      { prec: Precedence.None                                                                        },
+  [TokenType.Function]:   { prec: Precedence.None                                                                        },
+  [TokenType.Return]:     { prec: Precedence.None                                                                        },
 };
 
 function padOrTruncateString(str: string, length: number): string {
@@ -59,6 +61,13 @@ type Locals = {
   variables: { [name: string]: number },
   parent: Locals | null;
 }
+
+type CompileFunctionResult = {
+  program: Program;
+  arity: number;
+  previous: Token;
+  current: Token;
+};
 
 class Compiler {
   output: Array<RawValue> = [];
@@ -76,8 +85,16 @@ class Compiler {
 
   callDepth = 0;
 
-  constructor() {
-    this.lexer = new Lexer("");
+  constructor(enclosingCompiler?: Compiler) {
+    if (typeof enclosingCompiler === "undefined" ) {
+      this.lexer = new Lexer("");
+      return;
+    }
+
+    this.lexer = enclosingCompiler.lexer;
+    this.current = enclosingCompiler.current;
+    this.previous = enclosingCompiler.previous;
+    this.debug = enclosingCompiler.debug;
   }
 
   private debugEnter(msg: string) {
@@ -126,7 +143,11 @@ class Compiler {
 
   emitConstant(val: Value) {
     this.emit(OpCode.Constant);
-    this.emit(val.value);
+    if (val.type === ValueType.Function) {
+      this.emit(val);
+    } else {
+      this.emit(val.value);
+    }
   }
 
 
@@ -243,6 +264,55 @@ class Compiler {
           this.consume(TokenType.End);
         }
 
+        break;
+      }
+
+      case TokenType.Function: {
+        this.consume(TokenType.Function);
+        this.consume(TokenType.Identifier);
+
+        const nameToken = this.previous;
+        let name = '';
+
+        // always true, since we consumed it above
+        if (nameToken.type === TokenType.Identifier) {
+          name = nameToken.value;
+        }
+
+        const fnCompiler = new Compiler(this);
+
+        this.beginScope();
+
+        const result = fnCompiler.compileFunction();
+        this.current = result.current;
+        this.previous = result.previous;
+
+        this.endScope();
+
+        this.consume(TokenType.End);
+
+        const fnValue = createFunctionValue(name, result.arity, result.program);
+
+        // TODO tidy all this duplicate code up
+        if (this.scopeDepth > 0) {
+          this.emitConstant(fnValue);
+        } else {
+          if (fnValue.type === ValueType.Function) {
+            this.emit(OpCode.PushImmediate);
+            this.output.push(fnValue);
+            this.emit(OpCode.DefineGlobal);
+            this.emit(name);
+          }
+        }
+        break;
+      }
+
+      case TokenType.Return: {
+        this.consume(TokenType.Return);
+
+        // TODO how do we do an empty return with no statement terminator? uh oh.
+        this.expression();
+        this.emit(OpCode.Return);
         break;
       }
 
@@ -436,7 +506,39 @@ class Compiler {
   }
 
 
-  compile(code: string): Array<RawValue> {
+  compileFunction(): CompileFunctionResult {
+    this.scopeDepth = 1;
+    let arity = 0;
+    this.localCount = 1; // 1 to account for the function on the stack
+
+    this.consume(TokenType.LParen);
+
+    while (true) {
+      if (this.current.type === TokenType.RParen) {
+        this.consume(TokenType.RParen);
+        break;
+      }
+
+      this.consume(TokenType.Identifier);
+      const name = this.previous;
+      if (name.type === TokenType.Identifier) {
+        this.locals.variables[name.value] = this.localCount++;
+      }
+
+      arity++;
+    }
+
+    this.block([TokenType.End]);
+
+    return {
+      program: this.output,
+      arity,
+      previous: this.previous,
+      current: this.current,
+    };
+  }
+
+  compile(code: string): Program {
     this.output = [];
     this.lexer = new Lexer(code);
 

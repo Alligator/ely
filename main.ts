@@ -2,6 +2,7 @@ import { Args, parse } from "https://deno.land/std/flags/mod.ts";
 import { Lexer, TokenType } from "./lexer.ts";
 import { ElyVm, OpCode } from "./vm/vm.ts";
 import { Compiler } from "./compiler/compiler.ts";
+import { RawValue } from "./vm/value.ts";
 
 async function readLine() {
   const enc = new TextEncoder();
@@ -98,6 +99,11 @@ async function runFile(fileName: string, args: Args) {
     vm.debug = args.debug;
 
     const program = compiler.compile(source);
+    if (args.debug) {
+      program.forEach((op, i) => {
+        console.log(`${('000' + i).slice(-4)} ${op}`);
+      });
+    }
     const result = await vm.run(program);
     if (result) {
       console.log(result?.value);
@@ -128,21 +134,6 @@ if (args._.length > 0) {
 } else {
   repl(args);
 }
-
-// const lex = new Lexer(source);
-
-// while (true) {
-//   try {
-//     const tok = lex.nextToken();
-//     console.log(tok);
-//     if (tok.type === TokenType.EOF) {
-//       break;
-//     }
-//   } catch (e) {
-//     console.error(e.message);
-//     break;
-//   }
-// }
 
 /*
 let program: Array<RawValue> = [
@@ -216,12 +207,3 @@ program = program.map((instr) => {
   return instr;
 });
 */
-
-// program.forEach((instr, index) => {
-//   console.log(`${index}: ${instr}`);
-// });
-
-// const vm = new ElyVm();
-// vm.debug = true;
-// const result = await vm.run(program);
-// console.log(result?.value);
