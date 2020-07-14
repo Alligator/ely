@@ -72,8 +72,8 @@ type CompileFunctionResult = {
 class Compiler {
   output: Array<RawValue> = [];
   lexer: Lexer;
-  current: Token = { type: TokenType.Error }
-  previous: Token = { type: TokenType.Error }
+  current: Token = { type: TokenType.Error, line: 0, }
+  previous: Token = { type: TokenType.Error, line: 0 }
   debug: boolean = false;
 
   locals: Locals = {
