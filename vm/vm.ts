@@ -29,6 +29,7 @@ enum OpCode {
 }
 
 interface StackFrame {
+  name: string;
   callingCode: Program;
   callingProgramCounter: number;
   stackBase: number;
@@ -75,6 +76,11 @@ class ElyVm {
   }
 
   fatal(msg: string): never {
+    console.log('call stack:');
+    for (let i = this.callStack.length - 1; i >= 0; i--) {
+      console.error(`  ${this.callStack[i].name}`);
+    }
+    console.error("  <script>");
     throw new Error(`error at ${this.programCounter}: ${msg}`);
   }
 
@@ -447,6 +453,7 @@ class ElyVm {
 
             case ValueType.Function: {
               this.callStack.push({
+                name: func.name,
                 callingCode: this.code,
                 callingProgramCounter: this.programCounter,
                 stackBase: this.stack.length - argCount - 1,
