@@ -38,7 +38,10 @@ enum TokenType {
 };
 
 interface TokenSimple {
-  type: TokenType.EOF
+  type: TokenSimpleType;
+  line: number;
+}
+type TokenSimpleType = TokenType.EOF
     | TokenType.Var
     | TokenType.Equal | TokenType.EqualEqual | TokenType.BangEqual
     | TokenType.Plus | TokenType.Minus | TokenType.Greater | TokenType.Less
@@ -49,11 +52,14 @@ interface TokenSimple {
     | TokenType.If | TokenType.Then | TokenType.Else
     | TokenType.True | TokenType.False
     | TokenType.End | TokenType.Error;
-}
+
 interface TokenStringValue {
-  type: TokenType.Identifier | TokenType.String | TokenType.Number;
+  type: TokenStringValueType;
   value: string;
+  line: number;
 }
+
+type TokenStringValueType = TokenType.Identifier | TokenType.String | TokenType.Number;
 
 type Token
   = TokenSimple
@@ -85,6 +91,20 @@ class Lexer {
     return this.pos >= this.source.length;
   }
 
+  private simpleToken(type: TokenSimpleType): TokenSimple {
+    return {
+      type,
+      line: this.line,
+    };
+  }
+
+  private stringValueToken(type: TokenStringValueType, value: string): TokenStringValue {
+    return {
+      type,
+      value,
+      line: this.line,
+    };
+  }
 
   private advance(): string {
     if (this.isAtEnd) {
@@ -151,28 +171,25 @@ class Lexer {
 
     switch (value) {
 
-      case "function": return { type: TokenType.Function };
-      case "return":   return { type: TokenType.Return };
+      case "function": return this.simpleToken(TokenType.Function);
+      case "return":   return this.simpleToken(TokenType.Return);
 
-      case "var":   return { type: TokenType.Var };
-      case "while": return { type: TokenType.While };
-      case "do":    return { type: TokenType.Do };
-      case "break": return { type: TokenType.Break };
+      case "var":   return this.simpleToken(TokenType.Var);
+      case "while": return this.simpleToken(TokenType.While);
+      case "do":    return this.simpleToken(TokenType.Do);
+      case "break": return this.simpleToken(TokenType.Break);
 
-      case "if":    return { type: TokenType.If };
-      case "then":  return { type: TokenType.Then };
-      case "else":  return { type: TokenType.Else };
+      case "if":    return this.simpleToken(TokenType.If);
+      case "then":  return this.simpleToken(TokenType.Then);
+      case "else":  return this.simpleToken(TokenType.Else);
 
-      case "end":   return { type: TokenType.End };
+      case "end":   return this.simpleToken(TokenType.End);
 
-      case "true":  return { type: TokenType.True };
-      case "false": return { type: TokenType.False };
+      case "true":  return this.simpleToken(TokenType.True);
+      case "false": return this.simpleToken(TokenType.False);
 
       default:
-        return {
-          type: TokenType.Identifier,
-          value: this.source.substring(this.start, this.pos),
-        };
+        return this.stringValueToken(TokenType.Identifier, this.source.substring(this.start, this.pos));
     }
 
   }
@@ -182,10 +199,7 @@ class Lexer {
       this.advance();
     }
     this.advance(); // consume the closing quote
-    return {
-      type: TokenType.String,
-      value: this.source.substring(this.start + 1, this.pos - 1),
-    };
+    return this.stringValueToken(TokenType.String, this.source.substring(this.start + 1, this.pos - 1));
   }
 
   private number(): Token {
@@ -193,10 +207,7 @@ class Lexer {
       this.advance();
     }
 
-    return {
-      type: TokenType.Number,
-      value: this.source.substring(this.start, this.pos),
-    };
+    return this.stringValueToken(TokenType.Number, this.source.substring(this.start, this.pos));
   }
 
 
@@ -231,7 +242,7 @@ class Lexer {
     this.start = this.pos;
 
     if (this.isAtEnd) {
-      return { type: TokenType.EOF };
+      return this.simpleToken(TokenType.EOF);
     }
 
     const c = this.advance();
@@ -248,28 +259,28 @@ class Lexer {
       case '=': {
         if (this.peek() === '=') {
           this.advance();
-          return { type: TokenType.EqualEqual };
+          return this.simpleToken(TokenType.EqualEqual);
         }
-        return { type : TokenType.Equal };
+        return this.simpleToken(TokenType.Equal);
       }
 
       case '!': {
         if (this.peek() === '=') {
           this.advance();
-          return { type: TokenType.BangEqual };
+          return this.simpleToken(TokenType.BangEqual);
         }
         break;
       }
 
       case '"': return this.string();
-      case '(': return { type: TokenType.LParen };
-      case ')': return { type: TokenType.RParen };
-      case '+': return { type: TokenType.Plus };
-      case '-': return { type: TokenType.Minus };
-      case '>': return { type: TokenType.Greater };
-      case '<': return { type: TokenType.Less };
-      case '*': return { type: TokenType.Star };
-      case '/': return { type: TokenType.Slash };
+      case '(': return this.simpleToken(TokenType.LParen);
+      case ')': return this.simpleToken(TokenType.RParen);
+      case '+': return this.simpleToken(TokenType.Plus);
+      case '-': return this.simpleToken(TokenType.Minus);
+      case '>': return this.simpleToken(TokenType.Greater);
+      case '<': return this.simpleToken(TokenType.Less);
+      case '*': return this.simpleToken(TokenType.Star);
+      case '/': return this.simpleToken(TokenType.Slash);
     }
 
     this.fatal(`unexpected character ${JSON.stringify(c)}`);
