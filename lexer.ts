@@ -14,6 +14,7 @@ enum TokenType {
   Slash = "Slash",
   Greater = "Greater",
   Less = "Less",
+  Comma = "Comma",
 
   LParen = "LParen",
   RParen = "RParen",
@@ -45,7 +46,7 @@ type TokenSimpleType = TokenType.EOF
     | TokenType.Var
     | TokenType.Equal | TokenType.EqualEqual | TokenType.BangEqual
     | TokenType.Plus | TokenType.Minus | TokenType.Greater | TokenType.Less
-    | TokenType.Star | TokenType.Slash
+    | TokenType.Star | TokenType.Slash | TokenType.Comma
     | TokenType.LParen | TokenType.RParen
     | TokenType.Function | TokenType.Return
     | TokenType.While | TokenType.Do | TokenType.Break
@@ -281,6 +282,7 @@ class Lexer {
       case '<': return this.simpleToken(TokenType.Less);
       case '*': return this.simpleToken(TokenType.Star);
       case '/': return this.simpleToken(TokenType.Slash);
+      case ',': return this.simpleToken(TokenType.Comma);
     }
 
     this.fatal(`unexpected character ${JSON.stringify(c)}`);

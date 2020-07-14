@@ -48,6 +48,7 @@ const rules: { [K in TokenType]: Rule } = {
   [TokenType.Error]:      { prec: Precedence.None                                                                        },
   [TokenType.Function]:   { prec: Precedence.None                                                                        },
   [TokenType.Return]:     { prec: Precedence.None                                                                        },
+  [TokenType.Comma]:      { prec: Precedence.None                                                                        },
 };
 
 function padOrTruncateString(str: string, length: number): string {
@@ -419,13 +420,18 @@ class Compiler {
     }
 
     this.consume(TokenType.LParen);
-    if (this.current.type !== TokenType.RParen) {
+    let arity = 0;
+    while (this.current.type !== TokenType.RParen) {
       this.expression();
+      if (this.current.type === TokenType.Comma) {
+        this.consume(TokenType.Comma);
+      }
+      arity++;
     }
     this.consume(TokenType.RParen);
 
     this.emit(OpCode.Call);
-    this.emit(1); // num of args
+    this.emit(arity); // num of args
 
     this.debugLeave();
   }
@@ -513,12 +519,7 @@ class Compiler {
 
     this.consume(TokenType.LParen);
 
-    while (true) {
-      if (this.current.type === TokenType.RParen) {
-        this.consume(TokenType.RParen);
-        break;
-      }
-
+    while (this.current.type !== TokenType.RParen) {
       this.consume(TokenType.Identifier);
       const name = this.previous;
       if (name.type === TokenType.Identifier) {
@@ -526,7 +527,13 @@ class Compiler {
       }
 
       arity++;
+
+      if (this.current.type === TokenType.Comma) {
+        this.consume(TokenType.Comma);
+      }
     }
+
+    this.consume(TokenType.RParen);
 
     this.block([TokenType.End]);
 
