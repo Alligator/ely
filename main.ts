@@ -109,8 +109,7 @@ async function runFile(fileName: string, args: Args) {
       console.log(result?.value);
     }
   } catch(e) {
-    // console.error(e.message);
-    throw e;
+    console.error(e.message);
   }
 }
 
@@ -130,9 +129,9 @@ OPTIONS:
 }
 
 if (args._.length > 0) {
-  runFile(args._[0].toString(), args);
+  await runFile(args._[0].toString(), args);
 } else {
-  repl(args);
+  await repl(args);
 }
 
 /*
