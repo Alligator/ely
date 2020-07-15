@@ -2,7 +2,6 @@ import { Value, RawValue, createValue, valueToString, ValueType, valueIsTruthy, 
 import { disassembleNextOpCode } from "./disasm.ts";
 
 enum OpCode {
-  Constant = "Constant",
   DefineGlobal = "DefineGlobal",
   SetGlobal = "SetGlobal",
   GetGlobal = "GetGlobal",
@@ -136,16 +135,6 @@ class ElyVm {
       switch (opCode) {
         case OpCode.Halt: {
           return;
-        }
-
-        case OpCode.Constant: {
-          const arg = this.read();
-          const value = createValue(arg);
-          if (typeof value === "undefined") {
-            this.fatal("could not create value");
-          }
-          this.push(value);
-          break;
         }
 
         case OpCode.GetGlobal: {

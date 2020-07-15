@@ -143,7 +143,7 @@ class Compiler {
   }
 
   emitConstant(val: Value) {
-    this.emit(OpCode.Constant);
+    this.emit(OpCode.PushImmediate);
     if (val.type === ValueType.Function) {
       this.emit(val);
     } else {

@@ -25,7 +25,6 @@ function disassembleNextOpCode(programCounter: number, code: Array<RawValue>): s
   const op = code[programCounter];
 
   switch (op) {
-    case OpCode.Constant:
     case OpCode.DefineGlobal:
     case OpCode.PushImmediate:
     case OpCode.GetGlobal:
