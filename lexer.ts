@@ -218,6 +218,11 @@ class Lexer {
     let lineStart = this.pos;
     let lineEnd = this.pos;
 
+    if (this.pos === this.source.length) {
+      lineStart--;
+      lineEnd--;
+    }
+
     while (lineStart > 0 && this.source[lineStart - 1] !== '\n') {
       lineStart--;
     }
