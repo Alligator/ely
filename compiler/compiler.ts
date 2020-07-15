@@ -344,12 +344,8 @@ class Compiler {
     const token = this.current;
     const prefix = rules[token.type];
 
-    if (!prefix) {
-      this.fatal(`parse: could not parse ${JSON.stringify(token)}`);
-    }
-
-    if (typeof prefix.prefixFn === "undefined") {
-      this.fatal(`parse: could not parse ${JSON.stringify(token)}`);
+    if (!prefix || typeof prefix.prefixFn === "undefined") {
+      this.fatal(`unexpected ${token.type}`);
     }
 
     this.advance();
