@@ -9,3 +9,11 @@ if false then
 else
   print("it worked")
 end
+
+if false then
+  print("it failed")
+elseif true then
+  print("it worked")
+else
+  print("it failed")
+end

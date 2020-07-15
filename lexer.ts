@@ -28,6 +28,7 @@ enum TokenType {
 
   If = "If",
   Else = "Else",
+  ElseIf = "ElseIf",
   Then = "Then",
 
   End = "End",
@@ -50,7 +51,7 @@ type TokenSimpleType = TokenType.EOF
     | TokenType.LParen | TokenType.RParen
     | TokenType.Function | TokenType.Return
     | TokenType.While | TokenType.Do | TokenType.Break
-    | TokenType.If | TokenType.Then | TokenType.Else
+    | TokenType.If | TokenType.Then | TokenType.Else | TokenType.ElseIf
     | TokenType.True | TokenType.False
     | TokenType.End | TokenType.Error;
 
@@ -183,6 +184,7 @@ class Lexer {
       case "if":    return this.simpleToken(TokenType.If);
       case "then":  return this.simpleToken(TokenType.Then);
       case "else":  return this.simpleToken(TokenType.Else);
+      case "elseif":return this.simpleToken(TokenType.ElseIf);
 
       case "end":   return this.simpleToken(TokenType.End);
 

@@ -43,6 +43,7 @@ const rules: { [K in TokenType]: Rule } = {
   [TokenType.Break]:      { prec: Precedence.None                                                                        },
   [TokenType.If]:         { prec: Precedence.None                                                                        },
   [TokenType.Else]:       { prec: Precedence.None                                                                        },
+  [TokenType.ElseIf]:     { prec: Precedence.None                                                                        },
   [TokenType.Then]:       { prec: Precedence.None                                                                        },
   [TokenType.End]:        { prec: Precedence.None                                                                        },
   [TokenType.Error]:      { prec: Precedence.None                                                                        },
@@ -239,32 +240,7 @@ class Compiler {
 
       case TokenType.If: {
         this.consume(TokenType.If);
-
-        this.expression();
-        this.consume(TokenType.Then);
-
-        this.emit(OpCode.JumpIfFalse);
-        const thenJump = this.emit(999);
-
-        this.block([TokenType.Else, TokenType.End]);
-
-        this.emit(OpCode.Jump);
-        const elseJump = this.emit(999);
-
-        // patch jump from them => else
-        this.output[thenJump] = elseJump + 1;
-
-        if (this.current.type as any === TokenType.Else) {
-          this.consume(TokenType.Else);
-          this.block([TokenType.End]);
-          this.consume(TokenType.End);
-
-          // patch jump from else => end
-          this.output[elseJump] = this.output.length;
-        } else {
-          this.consume(TokenType.End);
-        }
-
+        this.ifStatement();
         break;
       }
 
@@ -324,6 +300,40 @@ class Compiler {
     }
 
     this.debugLeave();
+  }
+
+  ifStatement() {
+    this.expression();
+    this.consume(TokenType.Then);
+
+    this.emit(OpCode.JumpIfFalse);
+    const thenJump = this.emit(999);
+
+    this.block([TokenType.Else, TokenType.ElseIf, TokenType.End]);
+
+    this.emit(OpCode.Jump);
+    const elseJump = this.emit(999);
+
+    // patch jump from them => else
+    this.output[thenJump] = elseJump + 1;
+
+    if (this.current.type === TokenType.ElseIf) {
+      this.consume(TokenType.ElseIf);
+
+      this.ifStatement();
+
+      // patch jump from else => end
+      this.output[elseJump] = this.output.length;
+    } else if (this.current.type === TokenType.Else) {
+      this.consume(TokenType.Else);
+      this.block([TokenType.End]);
+      this.consume(TokenType.End);
+
+      // patch jump from else => end
+      this.output[elseJump] = this.output.length;
+    } else {
+      this.consume(TokenType.End);
+    }
   }
 
   block(endings: Array<TokenType>) {
