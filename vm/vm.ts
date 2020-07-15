@@ -118,7 +118,8 @@ class ElyVm {
     while (true) {
       if (this.debug && this.programCounter < this.code.length) {
         let msg = `  ${('000' + this.programCounter).slice(-4)} `;
-        msg += disassembleNextOpCode(this.programCounter, this.code);
+        const [disasm, _] = disassembleNextOpCode(this.programCounter, this.code);
+        msg += disasm;
         const padding = Math.max(40 - msg.length, 0);
         msg += new Array(padding).fill(' ').join('');
         msg += `stack: [${this.stack.map(v => valueToString(v)).join(', ')}]`;

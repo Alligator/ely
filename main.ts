@@ -3,6 +3,7 @@ import { Lexer, TokenType } from "./lexer.ts";
 import { ElyVm, OpCode } from "./vm/vm.ts";
 import { Compiler } from "./compiler/compiler.ts";
 import { RawValue } from "./vm/value.ts";
+import { disassembleNextOpCode } from "./vm/disasm.ts";
 
 async function readLine() {
   const enc = new TextEncoder();
@@ -98,12 +99,25 @@ async function runFile(fileName: string, args: Args) {
     compiler.debug = args.debug;
     vm.debug = args.debug;
 
-    const program = compiler.compile(source);
     if (args.debug) {
-      program.forEach((op, i) => {
-        console.log(`${('000' + i).slice(-4)} ${op}`);
-      });
+      console.log('compiling...');
     }
+    const program = compiler.compile(source);
+
+    if (args.debug) {
+      console.log('\nbytecode:');
+      let i = 0;
+      while (i < program.length) {
+        const [disasm, offset] = disassembleNextOpCode(i, program);
+        console.log(`  ${('000' + i).slice(-4)} ${disasm}`);
+        i += offset;
+      }
+    }
+
+    if (args.debug) {
+      console.log('\nrunning...');
+    }
+
     const result = await vm.run(program);
     if (result) {
       console.log(result?.value);

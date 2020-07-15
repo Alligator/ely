@@ -21,7 +21,7 @@ function oneArg(programCounter: number, code: Array<RawValue>): string {
   }
 }
 
-function disassembleNextOpCode(programCounter: number, code: Array<RawValue>): string {
+function disassembleNextOpCode(programCounter: number, code: Array<RawValue>): [string, number] {
   const op = code[programCounter];
 
   switch (op) {
@@ -35,9 +35,9 @@ function disassembleNextOpCode(programCounter: number, code: Array<RawValue>): s
     case OpCode.SetGlobal:
     case OpCode.SetLocal:
     case OpCode.GetLocal:
-      return oneArg(programCounter, code);
+      return [oneArg(programCounter, code), 2];
     default:
-      return op.toString();
+      return [op.toString(), 1];
   }
 }
 
