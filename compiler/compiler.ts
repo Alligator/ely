@@ -102,8 +102,8 @@ class Compiler {
   private debugEnter(msg: string) {
     this.callDepth++;
     if (this.debug) {
-      const padding = new Array(this.callDepth).fill(' ').join('');
-      let message = padOrTruncateString(`${padding}${msg}`, 20);
+      const padding = new Array(this.callDepth).fill('| ').join('');
+      let message = padOrTruncateString(`${padding}${msg}`, 30);
       message += ' ';
       message += padOrTruncateString(tokenToString(this.current), 20);
       message += ' ';
