@@ -1,19 +1,34 @@
 function log(text)
-  print(text)
+  if text != "hello from a function" then
+    print("failed :(")
+  end
 end
+log("hello from a function")
+
 
 function add(a, b)
   return a + b
 end
 
-log("hello from a function")
 var oneCall = add(10, 2)
-var twoCalls = add(add(10, 2), 2)
-
 if oneCall != 12 then
   print("failed :(")
 end
 
+var twoCalls = add(add(10, 2), 2)
 if twoCalls != 14 then
+  print("failed :(")
+end
+
+
+function returnsFunction()
+  function inner(a)
+    return 17 + a
+  end
+  return inner
+end
+
+var fn = returnsFunction()
+if fn(3) != 20 then
   print("failed :(")
 end
