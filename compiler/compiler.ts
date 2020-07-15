@@ -297,6 +297,7 @@ class Compiler {
         // TODO tidy all this duplicate code up
         if (this.scopeDepth > 0) {
           this.emitConstant(fnValue);
+          this.locals.variables[name] = this.localCount++;
         } else {
           if (fnValue.type === ValueType.Function) {
             this.emit(OpCode.PushImmediate);
