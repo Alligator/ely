@@ -19,7 +19,7 @@ type Rule = {
   prec: Precedence;
 };
 
-const rules: { [K in TokenType]: Rule } = {
+const rules: { [K in TokenType]?: Rule } = {
   [TokenType.Number]:     { prec: Precedence.None,        prefixFn: c => c.number()                                      },
   [TokenType.EqualEqual]: { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.BangEqual]:  { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
@@ -34,23 +34,12 @@ const rules: { [K in TokenType]: Rule } = {
   [TokenType.String]:     { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
   [TokenType.True]:       { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
   [TokenType.False]:      { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
-  [TokenType.EOF]:        { prec: Precedence.None                                                                        },
-  [TokenType.Var]:        { prec: Precedence.None                                                                        },
   [TokenType.Equal]:      { prec: Precedence.Assignment                                                                  },
-  [TokenType.RParen]:     { prec: Precedence.None                                                                        },
-  [TokenType.While]:      { prec: Precedence.None                                                                        },
-  [TokenType.Do]:         { prec: Precedence.None                                                                        },
-  [TokenType.Break]:      { prec: Precedence.None                                                                        },
-  [TokenType.If]:         { prec: Precedence.None                                                                        },
-  [TokenType.Else]:       { prec: Precedence.None                                                                        },
-  [TokenType.ElseIf]:     { prec: Precedence.None                                                                        },
-  [TokenType.Then]:       { prec: Precedence.None                                                                        },
-  [TokenType.End]:        { prec: Precedence.None                                                                        },
-  [TokenType.Error]:      { prec: Precedence.None                                                                        },
-  [TokenType.Function]:   { prec: Precedence.None                                                                        },
-  [TokenType.Return]:     { prec: Precedence.None                                                                        },
-  [TokenType.Comma]:      { prec: Precedence.None                                                                        },
 };
+
+function getRule(type: TokenType): Rule {
+  return rules[type] || { prec: Precedence.None };
+}
 
 function padOrTruncateString(str: string, length: number): string {
   if (str.length >= length) {
@@ -352,9 +341,9 @@ class Compiler {
     this.debugEnter('expression');
 
     const token = this.current;
-    const prefix = rules[token.type];
+    const prefix = getRule(token.type);
 
-    if (!prefix || typeof prefix.prefixFn === "undefined") {
+    if (typeof prefix.prefixFn === "undefined") {
       this.fatal(`unexpected ${token.type}`);
     }
 
@@ -363,8 +352,8 @@ class Compiler {
     // compile the left side
     prefix.prefixFn(this);
 
-    while (precedence <= rules[this.current.type].prec) {
-      const infix = rules[this.current.type];
+    while (precedence <= getRule(this.current.type).prec) {
+      const infix = getRule(this.current.type);
       if (infix.infixFn) {
         infix.infixFn(this, token);
       }
@@ -379,7 +368,7 @@ class Compiler {
     this.advance();
 
     const token = this.previous;
-    const precedence = rules[token.type]?.prec;
+    const precedence = getRule(token.type).prec;
 
     // compile the right side (the left side is already compiled)
     this.expression(precedence);
