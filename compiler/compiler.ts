@@ -98,7 +98,6 @@ class Compiler {
       message += ' ';
       message += padOrTruncateString(tokenToString(this.previous), 20);
       console.error(message);
-      // console.error(`${msg}\n   cur: ${JSON.stringify(this.current)}\n  prev: ${JSON.stringify(this.previous)}`);
     }
   }
 
@@ -164,6 +163,16 @@ class Compiler {
   }
 
 
+  declareVariable(name: string) {
+    if (this.scopeDepth > 0) {
+      this.locals.variables[name] = this.localCount++;
+    } else {
+      this.emit(OpCode.DefineGlobal);
+      this.emit(name);
+    }
+  }
+
+
   number() {
     this.debugEnter("number");
 
@@ -178,117 +187,36 @@ class Compiler {
     this.fatal(`expected a number but found ${this.previous}`);
   }
 
-  statement() {
-    this.debugEnter('statement');
+  varStatement() {
+    this.consume(TokenType.Identifier);
+    const name = this.previous;
 
-    switch (this.current.type) {
-      case TokenType.Var: {
-        this.consume(TokenType.Var);
-
-        // parse var declaration
-        this.consume(TokenType.Identifier);
-        const name = this.previous;
-
-        if (name.type === TokenType.Identifier) {
-          this.consume(TokenType.Equal);
-
-          this.expression();
-
-          if (this.scopeDepth > 0) {
-            this.locals.variables[name.value] = this.localCount++;
-          } else {
-            this.emit(OpCode.DefineGlobal);
-            this.emit(name.value);
-          }
-        }
-        break;
-      }
-
-      case TokenType.While: {
-        this.consume(TokenType.While);
-
-        const startPos = this.output.length;
-
-        this.expression();
-        this.consume(TokenType.Do);
-
-        this.emit(OpCode.JumpIfFalse);
-        const endJump = this.output.length;
-        this.emit(999);
-
-        this.block([TokenType.End]);
-        this.consume(TokenType.End);
-
-        this.emit(OpCode.Jump);
-        this.emit(startPos);
-
-        const endPos = this.output.length;
-        this.output[endJump] = endPos;
-        break;
-      }
-
-      case TokenType.If: {
-        this.consume(TokenType.If);
-        this.ifStatement();
-        break;
-      }
-
-      case TokenType.Function: {
-        this.consume(TokenType.Function);
-        this.consume(TokenType.Identifier);
-
-        const nameToken = this.previous;
-        let name = '';
-
-        // always true, since we consumed it above
-        if (nameToken.type === TokenType.Identifier) {
-          name = nameToken.value;
-        }
-
-        const fnCompiler = new Compiler(this);
-
-        this.beginScope();
-
-        const result = fnCompiler.compileFunction();
-        this.current = result.current;
-        this.previous = result.previous;
-
-        this.endScope();
-
-        this.consume(TokenType.End);
-
-        const fnValue = createFunctionValue(name, result.arity, result.program);
-
-        // TODO tidy all this duplicate code up
-        if (this.scopeDepth > 0) {
-          this.emitConstant(fnValue);
-          this.locals.variables[name] = this.localCount++;
-        } else {
-          if (fnValue.type === ValueType.Function) {
-            this.emit(OpCode.PushImmediate);
-            this.output.push(fnValue);
-            this.emit(OpCode.DefineGlobal);
-            this.emit(name);
-          }
-        }
-        break;
-      }
-
-      case TokenType.Return: {
-        this.consume(TokenType.Return);
-
-        // TODO how do we do an empty return with no statement terminator? uh oh.
-        this.expression();
-        this.emit(OpCode.Return);
-        break;
-      }
-
-      default:
-        this.expression();
-        break;
+    if (name.type === TokenType.Identifier) {
+      this.consume(TokenType.Equal);
+      this.expression();
+      this.declareVariable(name.value);
     }
+  }
 
-    this.debugLeave();
+  whileStatement() {
+    this.consume(TokenType.While);
+    const startPos = this.output.length;
+
+    this.expression();
+    this.consume(TokenType.Do);
+
+    this.emit(OpCode.JumpIfFalse);
+    const endJump = this.emit(999);
+
+    this.block([TokenType.End]);
+    this.consume(TokenType.End);
+
+    this.emit(OpCode.Jump);
+    this.emit(startPos);
+
+    // patch the jump from do => end
+    const endPos = this.output.length;
+    this.output[endJump] = endPos;
   }
 
   ifStatement() {
@@ -311,7 +239,7 @@ class Compiler {
 
       this.ifStatement();
 
-      // patch jump from else => end
+      // patch jump from elseif => end
       this.output[elseJump] = this.output.length;
     } else if (this.current.type === TokenType.Else) {
       this.consume(TokenType.Else);
@@ -323,6 +251,71 @@ class Compiler {
     } else {
       this.consume(TokenType.End);
     }
+  }
+
+  functionDeclaration() {
+    this.consume(TokenType.Identifier);
+
+    const nameToken = this.previous;
+    let name = '';
+
+    // always true, since we consumed it above
+    if (nameToken.type === TokenType.Identifier) {
+      name = nameToken.value;
+    }
+
+    const fnCompiler = new Compiler(this);
+
+    this.beginScope();
+
+    const result = fnCompiler.compileFunction();
+    this.current = result.current;
+    this.previous = result.previous;
+
+    this.endScope();
+
+    this.consume(TokenType.End);
+
+    const fnValue = createFunctionValue(name, result.arity, result.program);
+    this.emitConstant(fnValue);
+    this.declareVariable(name);
+  }
+
+  statement() {
+    this.debugEnter('statement');
+
+    switch (this.current.type) {
+      case TokenType.Var:
+        this.consume(TokenType.Var);
+        this.varStatement();
+        break;
+      case TokenType.While:
+        this.whileStatement();
+        break;
+      case TokenType.If:
+        this.consume(TokenType.If);
+        this.ifStatement();
+        break;
+      case TokenType.Function:
+        this.consume(TokenType.Function);
+        this.functionDeclaration();
+        break;
+
+      case TokenType.Return: {
+        this.consume(TokenType.Return);
+
+        // TODO how do we do an empty return with no statement terminator? uh oh.
+        this.expression();
+        this.emit(OpCode.Return);
+        break;
+      }
+
+      default:
+        this.expression();
+        break;
+    }
+
+    this.debugLeave();
   }
 
   block(endings: Array<TokenType>) {
