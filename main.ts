@@ -124,6 +124,7 @@ async function runFile(fileName: string, args: Args) {
     }
   } catch(e) {
     console.error(e.message);
+    Deno.exit(1);
   }
 }
 
