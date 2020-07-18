@@ -486,6 +486,9 @@ class ElyVm {
         case OpCode.Jump: {
           const dest = this.read();
           if (typeof dest === "number") {
+            if (this.code.length <= dest) {
+              this.fatal('attempted to jump beyond the end of the program');
+            }
             this.programCounter = dest;
           }
           break;

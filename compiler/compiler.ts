@@ -228,25 +228,28 @@ class Compiler {
 
     this.block([TokenType.Else, TokenType.ElseIf, TokenType.End]);
 
-    this.emit(OpCode.Jump);
-    const elseJump = this.emit(999);
-
-    // patch jump from them => else
-    this.output[thenJump] = elseJump + 1;
-
     if (this.current.type === TokenType.ElseIf) {
-      this.consume(TokenType.ElseIf);
+      this.emit(OpCode.Jump);
+      const elseJump = this.emit(999);
+      // patch jump from them => elseif
+      this.output[thenJump] = elseJump + 1;
 
+      this.consume(TokenType.ElseIf);
       this.ifStatement();
 
       // patch jump from elseif => end
       this.output[elseJump] = this.output.length;
     } else if (this.current.type === TokenType.Else) {
+      this.emit(OpCode.Jump);
+      const elseJump = this.emit(999);
+      // patch jump from them => elseif
+      this.output[thenJump] = elseJump + 1;
+
       this.consume(TokenType.Else);
       this.block([TokenType.End]);
       this.consume(TokenType.End);
 
-      // patch jump from else => end
+      // patch jump from elseif => end
       this.output[elseJump] = this.output.length;
     } else {
       this.consume(TokenType.End);

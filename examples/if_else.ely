@@ -1,4 +1,8 @@
 if true then
+  var a = 1
+end
+
+if true then
   print("it worked")
 else
   print("it failed")
