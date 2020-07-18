@@ -21,3 +21,11 @@ elseif true then
 else
   print("it failed")
 end
+
+if false then
+  print("it failed")
+elseif false then
+  print("it failed")
+else
+  print("it worked")
+end
