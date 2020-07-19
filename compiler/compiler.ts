@@ -312,6 +312,7 @@ class Compiler {
         // TODO how do we do an empty return with no statement terminator? uh oh.
         this.expression();
         this.emit(OpCode.Return);
+        this.emit(1);
         break;
       }
 
@@ -530,6 +531,10 @@ class Compiler {
     this.consume(TokenType.RParen);
 
     this.block([TokenType.End]);
+
+    // implicit return
+    this.emit(OpCode.Return);
+    this.emit(0);
 
     return {
       program: this.output,

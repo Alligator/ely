@@ -35,6 +35,7 @@ function disassembleNextOpCode(programCounter: number, code: Array<RawValue>): [
     case OpCode.SetGlobal:
     case OpCode.SetLocal:
     case OpCode.GetLocal:
+    case OpCode.Return:
       return [oneArg(programCounter, code), 2];
     default:
       return [op.toString(), 1];

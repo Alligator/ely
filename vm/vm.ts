@@ -107,6 +107,17 @@ class ElyVm {
     return this.stack[this.stack.length - num - 1];
   }
 
+  jump(dest: RawValue) {
+    if (typeof dest !== "number") {
+      this.fatal("didn't get a number when attempting to jump");
+    }
+
+    if (this.code.length <= dest) {
+      this.fatal("attempted to jump beyond the end of the program");
+    }
+    this.programCounter = dest;
+  }
+
   async run(code: Array<RawValue>): Promise<Value | undefined> {
     this.code = code;
     this.programCounter = 0;
@@ -473,33 +484,34 @@ class ElyVm {
         }
 
         case OpCode.Return: {
-          const value = this.pop();
-          if (!value) {
-            this.fatal("return with no value");
+          const numValues = this.read();
+          if (typeof numValues !== "number") {
+            this.fatal("expected a number for return");
           }
 
-          this.callStack[this.callStack.length - 1].returnValue = value;
+          // TODO support > 1 return value
+          if (numValues === 1) {
+            const value = this.pop();
+            if (!value) {
+              this.fatal("return with no value");
+            }
+            this.callStack[this.callStack.length - 1].returnValue = value;
+          }
 
           return;
         }
 
         case OpCode.Jump: {
           const dest = this.read();
-          if (typeof dest === "number") {
-            if (this.code.length <= dest) {
-              this.fatal('attempted to jump beyond the end of the program');
-            }
-            this.programCounter = dest;
-          }
+          this.jump(dest);
           break;
         }
 
         case OpCode.JumpIfFalse: {
           const dest = this.read();
           const value = this.pop();
-
-          if (typeof dest === "number" && value && !valueIsTruthy(value)) {
-            this.programCounter = dest;
+          if (value && !valueIsTruthy(value)) {
+            this.jump(dest);
           }
           break;
         }
