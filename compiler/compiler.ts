@@ -172,8 +172,7 @@ class Compiler {
     if (this.scopeDepth > 0) {
       this.locals.variables[name] = this.localCount++;
     } else {
-      this.emit(OpCode.DefineGlobal);
-      this.emit(name);
+      this.emit(OpCode.DefineGlobal, name);
     }
   }
 
@@ -210,14 +209,12 @@ class Compiler {
     this.expression();
     this.consume(TokenType.Do);
 
-    this.emit(OpCode.JumpIfFalse);
-    const endJump = this.emit(999);
+    const endJump = this.emit(OpCode.JumpIfFalse, 999);
 
     this.block([TokenType.End]);
     this.consume(TokenType.End);
 
-    this.emit(OpCode.Jump);
-    this.emit(startPos);
+    this.emit(OpCode.Jump, startPos);
 
     // patch the jump from do => end
     const endPos = this.output.length;
@@ -228,14 +225,12 @@ class Compiler {
     this.expression();
     this.consume(TokenType.Then);
 
-    this.emit(OpCode.JumpIfFalse);
-    const thenJump = this.emit(999);
+    const thenJump = this.emit(OpCode.JumpIfFalse, 999);
 
     this.block([TokenType.Else, TokenType.ElseIf, TokenType.End]);
 
     if (this.current.type === TokenType.ElseIf) {
-      this.emit(OpCode.Jump);
-      const elseJump = this.emit(999);
+      const elseJump = this.emit(OpCode.Jump, 999);
       // patch jump from them => elseif
       this.output[thenJump] = elseJump + 1;
 
@@ -245,8 +240,7 @@ class Compiler {
       // patch jump from elseif => end
       this.output[elseJump] = this.output.length;
     } else if (this.current.type === TokenType.Else) {
-      this.emit(OpCode.Jump);
-      const elseJump = this.emit(999);
+      const elseJump = this.emit(OpCode.Jump, 999);
       // patch jump from them => elseif
       this.output[thenJump] = elseJump + 1;
 
@@ -316,8 +310,7 @@ class Compiler {
 
         // TODO how do we do an empty return with no statement terminator? uh oh.
         this.expression();
-        this.emit(OpCode.Return);
-        this.emit(1);
+        this.emit(OpCode.Return, 1);
         break;
       }
 
@@ -400,8 +393,7 @@ class Compiler {
         this.emit(OpCode.Equal);
         break;
       case TokenType.BangEqual:
-        this.emit(OpCode.Equal);
-        this.emit(OpCode.Not);
+        this.emit(OpCode.Equal, OpCode.Not);
         break;
       default:
         this.fatal(`parse: invalid operator ${token.type}`);
@@ -444,8 +436,7 @@ class Compiler {
     }
     this.consume(TokenType.RParen);
 
-    this.emit(OpCode.Call);
-    this.emit(arity); // num of args
+    this.emit(OpCode.Call, arity);
 
     this.debugLeave();
   }
@@ -458,19 +449,16 @@ class Compiler {
     switch (token.type) {
       case TokenType.Number:    // intentional fallthrough
       case TokenType.String: {
-        this.emit(OpCode.PushImmediate);
-        this.emit(token.value);
+        this.emit(OpCode.PushImmediate, token.value);
         break;
       }
 
       case TokenType.True: {
-        this.emit(OpCode.PushImmediate);
-        this.emit(true);
+        this.emit(OpCode.PushImmediate, true);
         break;
       }
       case TokenType.False: {
-        this.emit(OpCode.PushImmediate);
-        this.emit(false);
+        this.emit(OpCode.PushImmediate, false);
         break;
       }
 
@@ -535,11 +523,9 @@ class Compiler {
     if (this.current.type === TokenType.Equal) {
       this.consume(TokenType.Equal);
       this.expression();
-      this.emit(setOp);
-      this.emit(arg);
+      this.emit(setOp, arg);
     } else {
-      this.emit(getOp);
-      this.emit(arg);
+      this.emit(getOp, arg);
     }
 
     this.debugLeave();
@@ -572,8 +558,7 @@ class Compiler {
     this.block([TokenType.End]);
 
     // implicit return
-    this.emit(OpCode.Return);
-    this.emit(0);
+    this.emit(OpCode.Return, 0);
 
     return {
       program: this.output,
