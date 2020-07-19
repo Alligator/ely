@@ -1,0 +1,13 @@
+function beep()
+  return "beep"
+end
+
+var myArray = [1, "tony", beep()]
+
+if myArray[0] != 1 then
+  print("failed :(")
+elseif myArray[1] != "tony" then
+  print("failed :(")
+elseif myArray[2] != "beep" then
+  print("failed :(")
+end

@@ -4,6 +4,7 @@ enum ValueType {
   Bool = "Bool",
   Function = "Function",
   NativeFunction = "NativeFunction",
+  List = "List",
   Null = "Null",
 }
 
@@ -34,12 +35,19 @@ interface ValueFunction {
   value: Program;
 }
 
+interface ValueList {
+  type: ValueType.List;
+  value: Array<Value>;
+  length: number;
+}
+
 type Value =
   ValueString
   | ValueNumber
   | ValueBool
   | ValueNativeFunction
-  | ValueFunction;
+  | ValueFunction
+  | ValueList;
 
 type RawValue =
   number
@@ -89,6 +97,14 @@ function createFunctionValue(name: string, arity: number, program: Program): Val
   };
 }
 
+function createListValue(): ValueList {
+  return {
+    type: ValueType.List,
+    value: [],
+    length: 0,
+  };
+}
+
 function valueIsTruthy(val: Value): boolean {
   switch (val.type) {
     case ValueType.Bool:
@@ -115,13 +131,15 @@ function valueToString(val: Value): string {
     case ValueType.Number:
       return val.value.toString();
       case ValueType.String:
-        return `"${val.value}"`;
+        return `${val.value}`;
       case ValueType.NativeFunction:
         return `(native func)`;
       case ValueType.Function:
         return `${val.name}()`;
+      case ValueType.List:
+        return "(list)";
       default:
-      return val.value.toString();
+        return val.value.toString();
   }
 }
 
@@ -132,6 +150,7 @@ export {
   Program,
   createValue,
   createFunctionValue,
+  createListValue,
   valueIsTruthy,
   valuesAreEqual,
   valueToString,

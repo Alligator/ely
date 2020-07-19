@@ -1,4 +1,4 @@
-import { Value, RawValue, createValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual, Program } from "./value.ts";
+import { Value, RawValue, createValue, createListValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual, Program } from "./value.ts";
 import { disassembleNextOpCode } from "./disasm.ts";
 
 enum OpCode {
@@ -8,6 +8,8 @@ enum OpCode {
 
   SetLocal = "SetLocal",
   GetLocal = "GetLocal",
+  SetList = "SetList",
+  GetList = "GetList",
 
   PushImmediate = "PushImmediate",
   Pop = "Pop",
@@ -46,7 +48,7 @@ class ElyVm {
 
   constructor() {
     this.addNativeFunction("print", (val: Value) => {
-      console.log(val.value);
+      console.log(valueToString(val));
     });
 
     this.addNativeFunction("read_line", async (): Promise<Value> => {
@@ -92,6 +94,14 @@ class ElyVm {
 
   read(): RawValue {
     return this.code[this.programCounter++];
+  }
+
+  readNumber(errorMessage: string): number {
+    const val = this.code[this.programCounter++];
+    if (typeof val !== "number") {
+      this.fatal(errorMessage);
+    }
+    return val;
   }
 
   push(val: Value) {
@@ -241,6 +251,42 @@ class ElyVm {
           }
 
           this.stack[index] = value;
+
+          break;
+        }
+
+        case OpCode.SetList: {
+          const len = this.readNumber("expected a number as list length");
+
+          const list = createListValue();
+          for (let i = 0; i < len; i++) {
+            const value = this.pop();
+            if (value) {
+              list.value.unshift(value);
+              list.length++;
+            }
+          }
+
+          this.push(list);
+          break;
+        }
+
+        case OpCode.GetList: {
+          const index = this.pop();
+          if (!index || index.type !== ValueType.Number) {
+            this.fatal("attempted to index a list with a non-number");
+          }
+
+          const list = this.pop();
+          if (!list || list.type !== ValueType.List) {
+            this.fatal("attempted to index into a value that is not a list");
+          }
+
+          if (index.value >= list.length) {
+            this.fatal("list index out of range");
+          }
+
+          this.push(list.value[index.value]);
 
           break;
         }

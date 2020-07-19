@@ -21,6 +21,11 @@ type Rule = {
 
 const rules: { [K in TokenType]?: Rule } = {
   [TokenType.Number]:     { prec: Precedence.None,        prefixFn: c => c.number()                                      },
+  [TokenType.Identifier]: { prec: Precedence.None,        prefixFn: c => c.identifier()                                  },
+  [TokenType.String]:     { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
+  [TokenType.True]:       { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
+  [TokenType.False]:      { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
+  [TokenType.LSquare]:    { prec: Precedence.Call,        prefixFn: c => c.list(),       infixFn: c => c.subscript()     },
   [TokenType.EqualEqual]: { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.BangEqual]:  { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.Plus]:       { prec: Precedence.Sum,                                        infixFn: c => c.binary()        },
@@ -30,10 +35,6 @@ const rules: { [K in TokenType]?: Rule } = {
   [TokenType.Greater]:    { prec: Precedence.Comparison,                                 infixFn: c => c.binary()        },
   [TokenType.Less]:       { prec: Precedence.Comparison,                                 infixFn: c => c.binary()        },
   [TokenType.LParen]:     { prec: Precedence.Call,                                       infixFn: c => c.functionCall()  },
-  [TokenType.Identifier]: { prec: Precedence.None,        prefixFn: c => c.identifier()                                  },
-  [TokenType.String]:     { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
-  [TokenType.True]:       { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
-  [TokenType.False]:      { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
   [TokenType.Equal]:      { prec: Precedence.Assignment                                                                  },
 };
 
@@ -126,8 +127,10 @@ class Compiler {
   }
 
 
-  emit(rawVal: RawValue): number {
-    this.output.push(rawVal);
+  emit(...args: Array<RawValue>): number {
+    args.forEach((rawVal) => {
+      this.output.push(rawVal);
+    });
     return this.output.length - 1;
   }
 
@@ -135,8 +138,10 @@ class Compiler {
     this.emit(OpCode.PushImmediate);
     if (val.type === ValueType.Function) {
       this.emit(val);
-    } else {
+    } else if (val.type !== ValueType.List)  {
       this.emit(val.value);
+    } else {
+      this.fatal(`cannot emit constants for values of type ${val.type}`);
     }
   }
 
@@ -405,6 +410,18 @@ class Compiler {
     this.debugLeave();
   }
 
+  subscript() {
+    this.debugEnter("subscript");
+
+    this.consume(TokenType.LSquare);
+    this.expression();
+    this.consume(TokenType.RSquare);
+
+    this.emit(OpCode.GetList);
+
+    this.debugLeave();
+  }
+
   functionCall() {
     this.debugEnter("functionCall");
 
@@ -418,10 +435,12 @@ class Compiler {
     let arity = 0;
     while (this.current.type !== TokenType.RParen) {
       this.expression();
+      arity++;
       if (this.current.type === TokenType.Comma) {
         this.consume(TokenType.Comma);
+      } else {
+        break;
       }
-      arity++;
     }
     this.consume(TokenType.RParen);
 
@@ -458,6 +477,26 @@ class Compiler {
       default:
         this.fatal("parse: literal must be string or number");
     }
+
+    this.debugLeave();
+  }
+
+  list() {
+    this.debugEnter("list");
+
+    let len = 0;
+    while (this.current.type !== TokenType.RSquare) {
+      this.expression();
+      len++;
+      if (this.current.type === TokenType.Comma) {
+        this.consume(TokenType.Comma);
+      } else {
+        break;
+      }
+    }
+    this.consume(TokenType.RSquare);
+
+    this.emit(OpCode.SetList, len);
 
     this.debugLeave();
   }

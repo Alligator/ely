@@ -18,6 +18,8 @@ enum TokenType {
 
   LParen = "LParen",
   RParen = "RParen",
+  LSquare = "LSquare",
+  RSquare = "RSquare",
 
   Function = "Function",
   Return = "Return",
@@ -48,7 +50,7 @@ type TokenSimpleType = TokenType.EOF
     | TokenType.Equal | TokenType.EqualEqual | TokenType.BangEqual
     | TokenType.Plus | TokenType.Minus | TokenType.Greater | TokenType.Less
     | TokenType.Star | TokenType.Slash | TokenType.Comma
-    | TokenType.LParen | TokenType.RParen
+    | TokenType.LParen | TokenType.RParen | TokenType.LSquare | TokenType.RSquare
     | TokenType.Function | TokenType.Return
     | TokenType.While | TokenType.Do | TokenType.Break
     | TokenType.If | TokenType.Then | TokenType.Else | TokenType.ElseIf
@@ -283,6 +285,8 @@ class Lexer {
       case '"': return this.string();
       case '(': return this.simpleToken(TokenType.LParen);
       case ')': return this.simpleToken(TokenType.RParen);
+      case '[': return this.simpleToken(TokenType.LSquare);
+      case ']': return this.simpleToken(TokenType.RSquare);
       case '+': return this.simpleToken(TokenType.Plus);
       case '-': return this.simpleToken(TokenType.Minus);
       case '>': return this.simpleToken(TokenType.Greater);
