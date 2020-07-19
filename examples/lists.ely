@@ -4,6 +4,10 @@ end
 
 var myArray = [1, "tony", beep()]
 
+if len(myArray) != 3 then
+  print("failed :(")
+end
+
 if myArray[0] != 1 then
   print("failed :(")
 elseif myArray[1] != "tony" then

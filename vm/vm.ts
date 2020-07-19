@@ -74,6 +74,13 @@ class ElyVm {
     this.addNativeFunction("str", (val: Value) => {
       return createValue(val.value.toString());
     });
+
+    this.addNativeFunction("len", (val: Value) => {
+      if (val.type !== ValueType.List) {
+        this.fatal(`cannot call len on a ${val.type}`);
+      }
+      return createValue(val.length);
+    });
   }
 
   fatal(msg: string): never {
