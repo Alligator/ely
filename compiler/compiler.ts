@@ -252,6 +252,8 @@ class Compiler {
       // patch jump from elseif => end
       this.output[elseJump] = this.output.length;
     } else {
+      // patch jump from them => end
+      this.output[thenJump] = this.output.length;;
       this.consume(TokenType.End);
     }
   }
