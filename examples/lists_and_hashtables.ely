@@ -1,0 +1,33 @@
+function beep()
+  return "beep"
+end
+
+# list tests
+var myList = [1, "tony", beep()]
+
+if len(myList) != 3 then
+  print("failed :(")
+end
+
+if myList[0] != 1 then
+  print("failed :(")
+elseif myList[1] != "tony" then
+  print("failed :(")
+elseif myList[2] != "beep" then
+  print("failed :(")
+end
+
+# hastable tests
+var myHt = {
+  "one": 1,
+  "2": "stony",
+  "boop": beep()
+}
+
+if myHt["one"] != 1 then
+  print("failed :(")
+elseif myHt[2] != "stony" then
+  print("failed :(")
+elseif myHt["boop"] != "beep" then
+  print("failed :(")
+end

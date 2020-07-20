@@ -26,6 +26,7 @@ const rules: { [K in TokenType]?: Rule } = {
   [TokenType.True]:       { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
   [TokenType.False]:      { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
   [TokenType.LSquare]:    { prec: Precedence.Call,        prefixFn: c => c.list(),       infixFn: c => c.subscript()     },
+  [TokenType.LCurly]:     { prec: Precedence.Call,        prefixFn: c => c.hashTable()                                   },
   [TokenType.EqualEqual]: { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.BangEqual]:  { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.Plus]:       { prec: Precedence.Sum,                                        infixFn: c => c.binary()        },
@@ -138,7 +139,7 @@ class Compiler {
     this.emit(OpCode.PushImmediate);
     if (val.type === ValueType.Function) {
       this.emit(val);
-    } else if (val.type !== ValueType.List)  {
+    } else if (val.type !== ValueType.HashTable)  {
       this.emit(val.value);
     } else {
       this.fatal(`cannot emit constants for values of type ${val.type}`);
@@ -409,7 +410,7 @@ class Compiler {
     this.expression();
     this.consume(TokenType.RSquare);
 
-    this.emit(OpCode.GetList);
+    this.emit(OpCode.GetHT);
 
     this.debugLeave();
   }
@@ -474,6 +475,7 @@ class Compiler {
 
     let len = 0;
     while (this.current.type !== TokenType.RSquare) {
+      this.emitConstant(createValue(len.toString()));
       this.expression();
       len++;
       if (this.current.type === TokenType.Comma) {
@@ -484,7 +486,33 @@ class Compiler {
     }
     this.consume(TokenType.RSquare);
 
-    this.emit(OpCode.SetList, len);
+    this.emit(OpCode.CreateHT, len);
+
+    this.debugLeave();
+  }
+
+  hashTable() {
+    this.debugEnter("hashTable");
+
+    let len = 0;
+    while (this.current.type !== TokenType.RCurly) {
+      this.consume(TokenType.String);
+      if (this.previous.type === TokenType.String) {
+        const name = this.previous.value;
+        this.consume(TokenType.Colon);
+        this.emitConstant(createValue(name));
+        this.expression();
+        len++;
+      }
+
+      if (this.current.type === TokenType.Comma) {
+        this.consume(TokenType.Comma);
+      } else {
+        break;
+      }
+    }
+    this.consume(TokenType.RCurly);
+    this.emit(OpCode.CreateHT, len);
 
     this.debugLeave();
   }

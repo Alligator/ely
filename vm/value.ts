@@ -4,7 +4,7 @@ enum ValueType {
   Bool = "Bool",
   Function = "Function",
   NativeFunction = "NativeFunction",
-  List = "List",
+  HashTable = "HashTable",
   Null = "Null",
 }
 
@@ -35,9 +35,9 @@ interface ValueFunction {
   value: Program;
 }
 
-interface ValueList {
-  type: ValueType.List;
-  value: Array<Value>;
+interface ValueHashTable {
+  type: ValueType.HashTable;
+  value: { [key: string]: Value },
   length: number;
 }
 
@@ -47,7 +47,7 @@ type Value =
   | ValueBool
   | ValueNativeFunction
   | ValueFunction
-  | ValueList;
+  | ValueHashTable;
 
 type RawValue =
   number
@@ -97,10 +97,10 @@ function createFunctionValue(name: string, arity: number, program: Program): Val
   };
 }
 
-function createListValue(): ValueList {
+function createHashTableValue(): ValueHashTable {
   return {
-    type: ValueType.List,
-    value: [],
+    type: ValueType.HashTable,
+    value: {},
     length: 0,
   };
 }
@@ -136,8 +136,8 @@ function valueToString(val: Value): string {
         return `(native func)`;
       case ValueType.Function:
         return `${val.name}()`;
-      case ValueType.List:
-        return "(list)";
+      case ValueType.HashTable:
+        return "(hash table)";
       default:
         return val.value.toString();
   }
@@ -150,7 +150,7 @@ export {
   Program,
   createValue,
   createFunctionValue,
-  createListValue,
+  createHashTableValue,
   valueIsTruthy,
   valuesAreEqual,
   valueToString,

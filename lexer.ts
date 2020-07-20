@@ -15,11 +15,14 @@ enum TokenType {
   Greater = "Greater",
   Less = "Less",
   Comma = "Comma",
+  Colon = "Colon",
 
   LParen = "LParen",
   RParen = "RParen",
   LSquare = "LSquare",
   RSquare = "RSquare",
+  LCurly = "LCurly",
+  RCurly = "RCurly",
 
   Function = "Function",
   Return = "Return",
@@ -45,17 +48,39 @@ interface TokenSimple {
   type: TokenSimpleType;
   line: number;
 }
-type TokenSimpleType = TokenType.EOF
-    | TokenType.Var
-    | TokenType.Equal | TokenType.EqualEqual | TokenType.BangEqual
-    | TokenType.Plus | TokenType.Minus | TokenType.Greater | TokenType.Less
-    | TokenType.Star | TokenType.Slash | TokenType.Comma
-    | TokenType.LParen | TokenType.RParen | TokenType.LSquare | TokenType.RSquare
-    | TokenType.Function | TokenType.Return
-    | TokenType.While | TokenType.Do | TokenType.Break
-    | TokenType.If | TokenType.Then | TokenType.Else | TokenType.ElseIf
-    | TokenType.True | TokenType.False
-    | TokenType.End | TokenType.Error;
+type TokenSimpleType
+  = TokenType.EOF
+  | TokenType.Var
+  | TokenType.Equal
+  | TokenType.EqualEqual
+  | TokenType.BangEqual
+  | TokenType.Plus
+  | TokenType.Minus
+  | TokenType.Star
+  | TokenType.Slash
+  | TokenType.Greater
+  | TokenType.Less
+  | TokenType.Comma
+  | TokenType.Colon
+  | TokenType.LParen
+  | TokenType.RParen
+  | TokenType.LSquare
+  | TokenType.RSquare
+  | TokenType.LCurly
+  | TokenType.RCurly
+  | TokenType.Function
+  | TokenType.Return
+  | TokenType.While
+  | TokenType.Do
+  | TokenType.Break
+  | TokenType.If
+  | TokenType.Else
+  | TokenType.ElseIf
+  | TokenType.Then
+  | TokenType.End
+  | TokenType.True
+  | TokenType.False
+  | TokenType.Error
 
 interface TokenStringValue {
   type: TokenStringValueType;
@@ -287,6 +312,8 @@ class Lexer {
       case ')': return this.simpleToken(TokenType.RParen);
       case '[': return this.simpleToken(TokenType.LSquare);
       case ']': return this.simpleToken(TokenType.RSquare);
+      case '{': return this.simpleToken(TokenType.LCurly);
+      case '}': return this.simpleToken(TokenType.RCurly);
       case '+': return this.simpleToken(TokenType.Plus);
       case '-': return this.simpleToken(TokenType.Minus);
       case '>': return this.simpleToken(TokenType.Greater);
@@ -294,6 +321,7 @@ class Lexer {
       case '*': return this.simpleToken(TokenType.Star);
       case '/': return this.simpleToken(TokenType.Slash);
       case ',': return this.simpleToken(TokenType.Comma);
+      case ':': return this.simpleToken(TokenType.Colon);
     }
 
     this.fatal(`unexpected character ${JSON.stringify(c)}`);

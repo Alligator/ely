@@ -1,4 +1,4 @@
-import { Value, RawValue, createValue, createListValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual, Program } from "./value.ts";
+import { Value, RawValue, createValue, createHashTableValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual, Program } from "./value.ts";
 import { disassembleNextOpCode } from "./disasm.ts";
 
 enum OpCode {
@@ -8,8 +8,8 @@ enum OpCode {
 
   SetLocal = "SetLocal",
   GetLocal = "GetLocal",
-  SetList = "SetList",
-  GetList = "GetList",
+  CreateHT = "CreateHT",
+  GetHT = "GetHT",
 
   PushImmediate = "PushImmediate",
   Pop = "Pop",
@@ -76,7 +76,7 @@ class ElyVm {
     });
 
     this.addNativeFunction("len", (val: Value) => {
-      if (val.type !== ValueType.List) {
+      if (val.type !== ValueType.HashTable) {
         this.fatal(`cannot call len on a ${val.type}`);
       }
       return createValue(val.length);
@@ -163,6 +163,9 @@ class ElyVm {
 
       switch (opCode) {
         case OpCode.Halt: {
+          if (this.debug) {
+            console.log("=== exit ely vm ===");
+          }
           return;
         }
 
@@ -262,38 +265,45 @@ class ElyVm {
           break;
         }
 
-        case OpCode.SetList: {
-          const len = this.readNumber("expected a number as list length");
+        case OpCode.CreateHT: {
+          const len = this.readNumber("expected a number as hash table length");
 
-          const list = createListValue();
-          for (let i = 0; i < len; i++) {
+          const ht = createHashTableValue();
+          for (let i = len - 1; i >= 0; i--) {
             const value = this.pop();
-            if (value) {
-              list.value.unshift(value);
-              list.length++;
+            const name = this.pop();
+            if (typeof name === "undefined" || typeof value === "undefined") {
+              this.fatal("missing key/value pair when creating a list");
             }
+
+            if (name.type !== ValueType.String) {
+              this.fatal("expected a string as a hash table key");
+            }
+
+            ht.value[name.value] = value;
+            ht.length++;
           }
 
-          this.push(list);
+          this.push(ht);
           break;
         }
 
-        case OpCode.GetList: {
-          const index = this.pop();
-          if (!index || index.type !== ValueType.Number) {
-            this.fatal("attempted to index a list with a non-number");
+        case OpCode.GetHT: {
+          const key = this.pop();
+          if (
+            !key
+            || (key.type !== ValueType.Number && key.type !== ValueType.String)
+          ) {
+            this.fatal("expected a string or number as an object index");
           }
 
-          const list = this.pop();
-          if (!list || list.type !== ValueType.List) {
-            this.fatal("attempted to index into a value that is not a list");
+          const ht = this.pop();
+          if (!ht || ht.type !== ValueType.HashTable) {
+            this.fatal("expected a hash table");
           }
 
-          if (index.value >= list.length) {
-            this.fatal("list index out of range");
-          }
-
-          this.push(list.value[index.value]);
+          const value = ht.value[key.value];
+          this.push(value);
 
           break;
         }
@@ -551,6 +561,9 @@ class ElyVm {
             this.callStack[this.callStack.length - 1].returnValue = value;
           }
 
+          if (this.debug) {
+            console.log("=== exit ely vm ===");
+          }
           return;
         }
 
@@ -587,6 +600,10 @@ class ElyVm {
           this.fatal(`unknown opcode: ${opCode}`);
         }
       }
+    }
+
+    if (this.debug) {
+      console.log("=== exit ely vm ===");
     }
   }
 }
