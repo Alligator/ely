@@ -15,7 +15,7 @@ async function readLine() {
   let read = await Deno.read(Deno.stdin.rid, bytes);
 
   if (read) {
-    const text = dec.decode(bytes.slice(0, read - 2));
+    const text = dec.decode(bytes.slice(0, read - 1));
     return text;
   }
 

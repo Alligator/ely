@@ -150,6 +150,9 @@ class ElyVm {
           if (this.debug) {
             console.log("=== exit ely vm ===");
           }
+          if (this.stack.length > 0) {
+            return this.pop();
+          }
           return;
         }
 
@@ -488,8 +491,9 @@ class ElyVm {
           }
 
           // TODO support > 1 return value
+          let value ;
           if (numValues === 1) {
-            const value = this.pop();
+            value = this.pop();
             if (!value) {
               this.fatal("return with no value");
             }
@@ -499,7 +503,7 @@ class ElyVm {
           if (this.debug) {
             console.log("=== exit ely vm ===");
           }
-          return;
+          return value;
         }
 
         case OpCode.Jump: {
