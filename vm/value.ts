@@ -128,20 +128,36 @@ function valuesAreEqual(val1: Value, val2: Value): boolean {
   return val1.value === val2.value;
 }
 
+function funcToString(val: ValueFunction | ValueNativeFunction): string {
+  let args;
+  if (val.arity === Infinity) {
+    args = "...";
+  } else {
+    args = new Array(val.arity).fill("_").join(", ");
+  }
+  return `${val.name}(${args})`;
+}
+
 function valueToString(val: Value): string {
   switch (val.type) {
     case ValueType.Number:
       return val.value.toString();
-      case ValueType.String:
-        return `${val.value}`;
-      case ValueType.NativeFunction:
-        return `(native func)`;
-      case ValueType.Function:
-        return `${val.name}()`;
-      case ValueType.HashTable:
-        return "(hash table)";
-      default:
-        return val.value.toString();
+    case ValueType.String:
+      return `${val.value}`;
+    case ValueType.NativeFunction:
+      return `${funcToString(val)} (native function)`;
+    case ValueType.Function:
+      return funcToString(val);
+
+    case ValueType.HashTable: {
+      const values = Object.keys(val.value).map((key) => {
+        return `"${key}": ${valueToString(val.value[key])}`;
+      });
+      return `{ ${values.join(", ")} }`;
+    }
+
+    default:
+      return val.value.toString();
   }
 }
 
