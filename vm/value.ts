@@ -25,6 +25,8 @@ interface ValueBool {
 
 interface ValueNativeFunction {
   type: ValueType.NativeFunction;
+  name: string;
+  arity: number;
   value: Function;
 }
 

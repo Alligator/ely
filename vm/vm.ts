@@ -1,5 +1,6 @@
 import { Value, RawValue, createValue, createHashTableValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual, Program } from "./value.ts";
 import { disassembleNextOpCode } from "./disasm.ts";
+import { addRuntimeApi } from "./runtime-library.ts";
 
 enum OpCode {
   DefineGlobal = "DefineGlobal",
@@ -47,40 +48,7 @@ class ElyVm {
   debug: boolean = false;
 
   constructor() {
-    this.addNativeFunction("print", (val: Value) => {
-      console.log(valueToString(val));
-    });
-
-    this.addNativeFunction("read_line", async (): Promise<Value> => {
-      const enc = new TextEncoder();
-      const dec = new TextDecoder();
-
-      await Deno.stdout.write(enc.encode("> "));
-
-      const bytes = new Uint8Array(64);
-      let read = await Deno.read(Deno.stdin.rid, bytes);
-
-      if (read) {
-        const text = dec.decode(bytes.slice(0, read - 2));
-        const val = createValue(text);
-        if (val) {
-          return val;
-        }
-      }
-
-      return createValue("");
-    });
-
-    this.addNativeFunction("str", (val: Value) => {
-      return createValue(val.value.toString());
-    });
-
-    this.addNativeFunction("len", (val: Value) => {
-      if (val.type !== ValueType.HashTable) {
-        this.fatal(`cannot call len on a ${val.type}`);
-      }
-      return createValue(val.length);
-    });
+    addRuntimeApi(this);
   }
 
   fatal(msg: string): never {
@@ -92,9 +60,11 @@ class ElyVm {
     throw new Error(`error at ${this.programCounter}: ${msg}`);
   }
 
-  addNativeFunction(name: string, fn: Function) {
+  addNativeFunction(name: string, arity: number, fn: Function) {
     this.globals[name] = {
       type: ValueType.NativeFunction,
+      name,
+      arity,
       value: fn,
     };
   }
@@ -502,8 +472,13 @@ class ElyVm {
           switch (func.type) {
             case ValueType.NativeFunction: {
               const args = [];
+              let arity = 0;
               for (let i = 0; i < argCount; i++) {
-                args.push(this.pop());
+                args.unshift(this.pop());
+                arity++;
+              }
+              if (func.arity !== Infinity && arity !== func.arity) {
+                this.fatal(`expected ${func.arity} arguments but got ${arity}`);
               }
               const result = await func.value.apply(func.value, args);
 
