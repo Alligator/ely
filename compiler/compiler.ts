@@ -418,12 +418,6 @@ class Compiler {
   functionCall() {
     this.debugEnter("functionCall");
 
-    const name = this.previous;
-
-    if (name.type !== TokenType.Identifier) {
-      this.fatal("parse: expected an identifier");
-    }
-
     this.consume(TokenType.LParen);
     let arity = 0;
     while (this.current.type !== TokenType.RParen) {
