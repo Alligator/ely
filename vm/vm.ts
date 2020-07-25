@@ -1,4 +1,4 @@
-import { Value, RawValue, createValue, createHashTableValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual, Program } from "./value.ts";
+import { Value, ValueNumber, RawValue, createValue, createHashTableValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual, Program } from "./value.ts";
 import { disassembleNextOpCode } from "./disasm.ts";
 import { addRuntimeApi } from "./runtime-library.ts";
 
@@ -89,6 +89,20 @@ class ElyVm {
       this.fatal("tried to pop an empty stack");
     }
     return this.stack.pop();
+  }
+  popTwoNumbers(): [ValueNumber, ValueNumber] {
+    const arg1 = this.pop();
+    const arg2 = this.pop();
+
+    if (!arg1 || !arg2) {
+      this.fatal("expected two arguments");
+    }
+
+    if (arg1.type === ValueType.Number && arg2.type === ValueType.Number) {
+      return [arg1, arg2];
+    }
+
+    this.fatal("expected two numbers");
   }
   peek(num: number): Value | undefined {
     return this.stack[this.stack.length - num - 1];
@@ -316,92 +330,38 @@ class ElyVm {
         }
 
         case OpCode.Greater: {
-          const arg1 = this.pop();
-          const arg2 = this.pop();
-
-          if (!arg1 || !arg2) {
-            this.fatal("not enough arguments given to greater");
+          const [arg1, arg2] = this.popTwoNumbers();
+          const value = createValue(arg2.value > arg1.value);
+          if (value) {
+            this.push(value);
           }
-
-          // both strings or both numbers
-          if (
-            (arg1.type === ValueType.String && arg2.type === ValueType.String)
-            || (arg1.type === ValueType.Number && arg2.type === ValueType.Number)
-          ) {
-            const value = createValue(arg2.value > arg1.value);
-            if (value) {
-              this.push(value);
-              break;
-            }
-          }
-
-          this.fatal("mismatched types for greater");
           break;
         }
 
         case OpCode.Less: {
-          const arg1 = this.pop();
-          const arg2 = this.pop();
-
-          if (!arg1 || !arg2) {
-            this.fatal("not enough arguments given to less");
+          const [arg1, arg2] = this.popTwoNumbers();
+          const value = createValue(arg2.value < arg1.value);
+          if (value) {
+            this.push(value);
           }
-
-          // both strings or both numbers
-          if (
-            (arg1.type === ValueType.String && arg2.type === ValueType.String)
-            || (arg1.type === ValueType.Number && arg2.type === ValueType.Number)
-          ) {
-            const value = createValue(arg2.value < arg1.value);
-            if (value) {
-              this.push(value);
-              break;
-            }
-          }
-
-          this.fatal("mismatched types for less");
           break;
         }
 
         case OpCode.Multiply: {
-          const arg1 = this.pop();
-          const arg2 = this.pop();
-
-          if (!arg1 || !arg2) {
-            this.fatal("not enough arguments given to multiply");
+          const [arg1, arg2] = this.popTwoNumbers();
+          const value = createValue(arg2.value * arg1.value);
+          if (value) {
+            this.push(value);
           }
-
-          // both strings or both numbers
-          if ((arg1.type === ValueType.Number && arg2.type === ValueType.Number)) {
-            const value = createValue(arg2.value * arg1.value);
-            if (value) {
-              this.push(value);
-              break;
-            }
-          }
-
-          this.fatal("mismatched types for multiply");
           break;
         }
 
         case OpCode.Divide: {
-          const arg1 = this.pop();
-          const arg2 = this.pop();
-
-          if (!arg1 || !arg2) {
-            this.fatal("not enough arguments given to divide");
+          const [arg1, arg2] = this.popTwoNumbers();
+          const value = createValue(arg2.value / arg1.value);
+          if (value) {
+            this.push(value);
           }
-
-          // both strings or both numbers
-          if ((arg1.type === ValueType.Number && arg2.type === ValueType.Number)) {
-            const value = createValue(arg2.value / arg1.value);
-            if (value) {
-              this.push(value);
-              break;
-            }
-          }
-
-          this.fatal("mismatched types for divide");
           break;
         }
 

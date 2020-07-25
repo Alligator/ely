@@ -148,6 +148,7 @@ function valueToString(val: Value): string {
 export {
   ValueType,
   Value,
+  ValueNumber,
   RawValue,
   Program,
   createValue,
