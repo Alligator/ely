@@ -37,7 +37,7 @@ const rules: { [K in TokenType]?: Rule } = {
   [TokenType.Slash]:      { prec: Precedence.Product,                                    infixFn: c => c.binary()        },
   [TokenType.Greater]:    { prec: Precedence.Comparison,                                 infixFn: c => c.binary()        },
   [TokenType.Less]:       { prec: Precedence.Comparison,                                 infixFn: c => c.binary()        },
-  [TokenType.LParen]:     { prec: Precedence.Call,                                       infixFn: c => c.functionCall()  },
+  [TokenType.LParen]:     { prec: Precedence.Call,        prefixFn: c => c.grouping(),   infixFn: c => c.functionCall()  },
   [TokenType.And]:        { prec: Precedence.Logical,                                    infixFn: c => c.binary()        },
   [TokenType.Or]:         { prec: Precedence.Logical,                                    infixFn: c => c.binary()        },
   [TokenType.Equal]:      { prec: Precedence.Assignment                                                                  },
@@ -426,6 +426,15 @@ class Compiler {
       default:
         this.fatal(`parse: unrecognised operator ${token.type}`);
     }
+
+    this.debugLeave();
+  }
+
+  grouping() {
+    this.debugEnter("grouping");
+
+    this.expression();
+    this.consume(TokenType.RParen);
 
     this.debugLeave();
   }
