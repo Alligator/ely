@@ -165,11 +165,7 @@ class Lexer {
           this.advance();
           break;
         case '\r':
-          if (this.peek(1) === '\n') {
-            this.line++;
-            this.advance();
-            this.advance();
-          }
+          this.advance();
           break;
         case '#': {
           // comments
