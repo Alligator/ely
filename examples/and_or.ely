@@ -1,0 +1,9 @@
+if true and false then
+  print("failed :(")
+elseif false and false then
+  print("failed :(")
+elseif false or false then
+  print("failed :(")
+elseif not true then
+  print("failed :(")
+end

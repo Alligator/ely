@@ -165,6 +165,7 @@ export {
   ValueType,
   Value,
   ValueNumber,
+  ValueBool,
   RawValue,
   Program,
   createValue,

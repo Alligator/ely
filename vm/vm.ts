@@ -1,4 +1,16 @@
-import { Value, ValueNumber, RawValue, createValue, createHashTableValue, valueToString, ValueType, valueIsTruthy, valuesAreEqual, Program } from "./value.ts";
+import {
+  Value,
+  ValueNumber,
+  ValueBool,
+  RawValue,
+  createValue,
+  createHashTableValue,
+  valueToString,
+  ValueType,
+  valueIsTruthy,
+  valuesAreEqual,
+  Program,
+} from "./value.ts";
 import { disassembleNextOpCode } from "./disasm.ts";
 import { addRuntimeApi } from "./runtime-library.ts";
 
@@ -22,6 +34,8 @@ enum OpCode {
   Greater = "Greater",
   Less = "Less",
   Equal = "Equal",
+  And = "And",
+  Or = "Or",
   Call = "Call",
   Return = "Return",
   Jump = "Jump",
@@ -103,6 +117,20 @@ class ElyVm {
     }
 
     this.fatal("expected two numbers");
+  }
+  popTwoBools(): [ValueBool, ValueBool] {
+    const arg1 = this.pop();
+    const arg2 = this.pop();
+
+    if (!arg1 || !arg2) {
+      this.fatal("expected two arguments");
+    }
+
+    if (arg1.type === ValueType.Bool && arg2.type === ValueType.Bool) {
+      return [arg1, arg2];
+    }
+
+    this.fatal("expected two bools");
   }
   peek(num: number): Value | undefined {
     return this.stack[this.stack.length - num - 1];
@@ -397,6 +425,24 @@ class ElyVm {
           }
 
           this.fatal("mismatched types for equal");
+          break;
+        }
+
+        case OpCode.And: {
+          const [arg1, arg2] = this.popTwoBools();
+          const value = createValue(arg1.value && arg2.value);
+          if (value) {
+            this.push(value);
+          }
+          break;
+        }
+
+        case OpCode.Or: {
+          const [arg1, arg2] = this.popTwoBools();
+          const value = createValue(arg1.value || arg2.value);
+          if (value) {
+            this.push(value);
+          }
           break;
         }
 

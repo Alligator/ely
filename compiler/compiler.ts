@@ -6,6 +6,7 @@ enum Precedence {
   None,
   Assignment,
   Equality,
+  Logical,
   Comparison,
   Sum,
   Product,
@@ -27,6 +28,7 @@ const rules: { [K in TokenType]?: Rule } = {
   [TokenType.False]:      { prec: Precedence.None,        prefixFn: c => c.literal()                                     },
   [TokenType.LSquare]:    { prec: Precedence.Call,        prefixFn: c => c.list(),       infixFn: c => c.subscript()     },
   [TokenType.LCurly]:     { prec: Precedence.Call,        prefixFn: c => c.hashTable()                                   },
+  [TokenType.Not]:        { prec: Precedence.Unary,       prefixFn: c => c.unary()                                       },
   [TokenType.EqualEqual]: { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.BangEqual]:  { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.Plus]:       { prec: Precedence.Sum,                                        infixFn: c => c.binary()        },
@@ -36,6 +38,8 @@ const rules: { [K in TokenType]?: Rule } = {
   [TokenType.Greater]:    { prec: Precedence.Comparison,                                 infixFn: c => c.binary()        },
   [TokenType.Less]:       { prec: Precedence.Comparison,                                 infixFn: c => c.binary()        },
   [TokenType.LParen]:     { prec: Precedence.Call,                                       infixFn: c => c.functionCall()  },
+  [TokenType.And]:        { prec: Precedence.Logical,                                    infixFn: c => c.binary()        },
+  [TokenType.Or]:         { prec: Precedence.Logical,                                    infixFn: c => c.binary()        },
   [TokenType.Equal]:      { prec: Precedence.Assignment                                                                  },
 };
 
@@ -360,6 +364,23 @@ class Compiler {
     this.debugLeave();
   }
 
+  unary() {
+    this.debugEnter('unary');
+
+    const operator = this.previous;
+    this.expression(Precedence.Unary);
+
+    switch (operator.type) {
+      case TokenType.Not:
+        this.emit(OpCode.Not);
+        break;
+      default:
+        this.fatal(`unrecognised unary operator ${operator.type}`);
+    }
+
+    this.debugLeave();
+  }
+
   binary() {
     this.debugEnter('binary');
 
@@ -396,8 +417,14 @@ class Compiler {
       case TokenType.BangEqual:
         this.emit(OpCode.Equal, OpCode.Not);
         break;
+      case TokenType.And:
+        this.emit(OpCode.And);
+        break;
+      case TokenType.Or:
+        this.emit(OpCode.Or);
+        break;
       default:
-        this.fatal(`parse: invalid operator ${token.type}`);
+        this.fatal(`parse: unrecognised operator ${token.type}`);
     }
 
     this.debugLeave();

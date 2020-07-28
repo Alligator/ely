@@ -38,6 +38,10 @@ enum TokenType {
 
   End = "End",
 
+  And = "And",
+  Or = "Or",
+  Not = "Not",
+
   True = "True",
   False = "False",
 
@@ -78,6 +82,9 @@ type TokenSimpleType
   | TokenType.ElseIf
   | TokenType.Then
   | TokenType.End
+  | TokenType.And
+  | TokenType.Or
+  | TokenType.Not
   | TokenType.True
   | TokenType.False
   | TokenType.Error
@@ -217,6 +224,10 @@ class Lexer {
 
       case "true":  return this.simpleToken(TokenType.True);
       case "false": return this.simpleToken(TokenType.False);
+
+      case "and":   return this.simpleToken(TokenType.And);
+      case "or":    return this.simpleToken(TokenType.Or);
+      case "not":   return this.simpleToken(TokenType.Not);
 
       default:
         return this.stringValueToken(TokenType.Identifier, this.source.substring(this.start, this.pos));
