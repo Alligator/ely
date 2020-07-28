@@ -80,14 +80,7 @@ function lex(source: string) {
   }
 }
 
-async function runFile(fileName: string, args: Args) {
-  const file = await Deno.open(fileName, { read: true });
-  const bytes = await Deno.readAll(file);
-  Deno.close(file.rid);
-
-  const dec = new TextDecoder();
-  const source = dec.decode(bytes);
-
+async function runString(source: string, args: Args) {
   if (args.lex) {
     lex(source);
     return;
@@ -129,8 +122,9 @@ async function runFile(fileName: string, args: Args) {
 }
 
 const args = parse(Deno.args, {
+  string: ["e"],
   boolean: ["debug", "lex", "help"],
-  default: { debug: false, lex: false, help: false },
+  default: { e: null, debug: false, lex: false, help: false },
 });
 
 if (args.help) {
@@ -138,13 +132,23 @@ if (args.help) {
 usage: ely [OPTIONS] [SCRIPT]
 
 OPTIONS:
-    --debug   print debug compiler and vm output
-    --lex     print the tokenised program and exit without running it`);
+    -e STRING   execute the given string and exit
+    --debug     print debug compiler and vm output
+    --lex       print the tokenised program and exit without running it`);
   Deno.exit(0);
 }
 
 if (args._.length > 0) {
-  await runFile(args._[0].toString(), args);
+  const file = await Deno.open(args._[0].toString(), { read: true });
+  const bytes = await Deno.readAll(file);
+  Deno.close(file.rid);
+
+  const dec = new TextDecoder();
+  const source = dec.decode(bytes);
+
+  await runString(source, args);
+} else if (args.e) {
+  await runString(args.e, args);
 } else {
   await repl(args);
 }
