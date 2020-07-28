@@ -4,4 +4,5 @@
 - clean up runtime errors in the vm
 - closures
 - error synchronisation
-- and/or/not
+- groupings
+- coroutines?
