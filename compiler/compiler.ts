@@ -358,6 +358,8 @@ class Compiler {
       const infix = getRule(this.current.type);
       if (infix.infixFn) {
         infix.infixFn(this, token);
+      } else {
+        this.fatal(`unexpected operator ${token.type}`);
       }
     }
 
