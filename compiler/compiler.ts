@@ -71,7 +71,8 @@ class Compiler {
   lexer: Lexer;
   current: Token = { type: TokenType.Error, line: 0, }
   previous: Token = { type: TokenType.Error, line: 0 }
-  debug: boolean = false;
+  debug = false;
+  hadError = false;
 
   locals: Locals = {
     variables: {},
@@ -293,38 +294,67 @@ class Compiler {
   statement() {
     this.debugEnter('statement');
 
-    switch (this.current.type) {
-      case TokenType.Var:
-        this.consume(TokenType.Var);
-        this.varStatement();
-        break;
-      case TokenType.While:
-        this.whileStatement();
-        break;
-      case TokenType.If:
-        this.consume(TokenType.If);
-        this.ifStatement();
-        break;
-      case TokenType.Function:
-        this.consume(TokenType.Function);
-        this.functionDeclaration();
-        break;
+    try {
+      switch (this.current.type) {
+        case TokenType.Var:
+          this.consume(TokenType.Var);
+          this.varStatement();
+          break;
+        case TokenType.While:
+          this.whileStatement();
+          break;
+        case TokenType.If:
+          this.consume(TokenType.If);
+          this.ifStatement();
+          break;
+        case TokenType.Function:
+          this.consume(TokenType.Function);
+          this.functionDeclaration();
+          break;
 
-      case TokenType.Return: {
-        this.consume(TokenType.Return);
+        case TokenType.Return: {
+          this.consume(TokenType.Return);
 
-        // TODO how do we do an empty return with no statement terminator? uh oh.
-        this.expression();
-        this.emit(OpCode.Return, 1);
-        break;
+          // TODO how do we do an empty return with no statement terminator? uh oh.
+          this.expression();
+          this.emit(OpCode.Return, 1);
+          break;
+        }
+
+        default:
+          this.expression();
+          break;
       }
-
-      default:
-        this.expression();
-        break;
+    } catch (err) {
+      let e = err as Error;
+      this.hadError = true;
+      console.error(e.message);
+      this.synchronise();
     }
 
     this.debugLeave();
+  }
+
+  synchronise() {
+    while (this.current.type !== TokenType.EOF) {
+      switch (this.current.type) {
+        // statement starters
+        case TokenType.Var:
+        case TokenType.While:
+        case TokenType.If:
+        case TokenType.Function:
+        case TokenType.Return:
+          return;
+
+        // statement enders
+        case TokenType.Do:
+        case TokenType.Then:
+          this.advance();
+          return;
+      }
+
+      this.advance();
+    }
   }
 
   block(endings: Array<TokenType>) {
@@ -359,7 +389,7 @@ class Compiler {
       if (infix.infixFn) {
         infix.infixFn(this, token);
       } else {
-        this.fatal(`unexpected operator ${token.type}`);
+        this.fatal(`unexpected operator ${this.current.type}`);
       }
     }
 
@@ -640,6 +670,10 @@ class Compiler {
 
     this.emit(OpCode.Halt);
     this.consume(TokenType.EOF);
+
+    if (this.hadError) {
+      throw new Error('parsing failed');
+    }
 
     return this.output;
   }

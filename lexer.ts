@@ -265,11 +265,11 @@ class Lexer {
       lineEnd++;
     }
 
-    let errMsg = `flagrant error on line ${this.line}\n`;
-    errMsg += `${msg}\n`;
-    errMsg += `    ${this.source.substring(lineStart, lineEnd)}\n    `;
+    let errMsg = `flagrant error on line ${this.line}:\n`;
+    errMsg += `  ${msg}\n`;
+    errMsg += `      ${this.source.substring(lineStart, lineEnd)}\n    `;
     errMsg += new Array(this.pos - lineStart - 1).fill(' ').join('');
-    errMsg += '^';
+    errMsg += '  ^';
 
     return errMsg;
   }
