@@ -29,6 +29,7 @@ const rules: { [K in TokenType]?: Rule } = {
   [TokenType.LSquare]:    { prec: Precedence.Call,        prefixFn: c => c.list(),       infixFn: c => c.subscript()     },
   [TokenType.LCurly]:     { prec: Precedence.Call,        prefixFn: c => c.hashTable()                                   },
   [TokenType.Not]:        { prec: Precedence.Unary,       prefixFn: c => c.unary()                                       },
+  [TokenType.Function]:   { prec: Precedence.None,        prefixFn: c => c.functionDeclaration(true)                                       },
   [TokenType.EqualEqual]: { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.BangEqual]:  { prec: Precedence.Equality,                                   infixFn: c => c.binary()        },
   [TokenType.Plus]:       { prec: Precedence.Sum,                                        infixFn: c => c.binary()        },
@@ -263,15 +264,19 @@ class Compiler {
     }
   }
 
-  functionDeclaration() {
-    this.consume(TokenType.Identifier);
+  functionDeclaration(expression = false) {
+    let name = `func_expr_${this.current.line}`;
+    if (this.current.type === TokenType.Identifier) {
+      this.consume(TokenType.Identifier);
 
-    const nameToken = this.previous;
-    let name = '';
+      const nameToken = this.previous;
 
-    // always true, since we consumed it above
-    if (nameToken.type === TokenType.Identifier) {
-      name = nameToken.value;
+      // always true, since we consumed it above
+      if (nameToken.type === TokenType.Identifier) {
+        name = nameToken.value;
+      }
+    } else if (!expression) {
+      this.fatal('expected a function name');
     }
 
     const fnCompiler = new Compiler(this);
@@ -289,6 +294,10 @@ class Compiler {
     const fnValue = createFunctionValue(name, result.arity, result.program);
     this.emitConstant(fnValue);
     this.declareVariable(name);
+
+    if (expression) {
+      this.emitConstant(fnValue);
+    }
   }
 
   statement() {

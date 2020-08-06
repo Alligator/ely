@@ -36,3 +36,13 @@ end
 if returnsFunction()(5) != 22 then
   print("failed :(")
 end
+
+var immediatelyInvoked = (function() return 789 end)()
+if immediatelyInvoked != 789 then
+  print("failed :(")
+end
+
+var anonymous = function() return 457 end
+if anonymous() != 457 then
+  print("failed :(")
+end
