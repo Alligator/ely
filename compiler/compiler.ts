@@ -145,7 +145,7 @@ class Compiler {
     this.emit(OpCode.PushImmediate);
     if (val.type === ValueType.Function) {
       this.emit(val);
-    } else if (val.type !== ValueType.HashTable)  {
+    } else if (val.type !== ValueType.HashTable && val.type !== ValueType.Null) {
       this.emit(val.value);
     } else {
       this.fatal(`cannot emit constants for values of type ${val.type}`);
@@ -203,8 +203,12 @@ class Compiler {
     const name = this.previous;
 
     if (name.type === TokenType.Identifier) {
-      this.consume(TokenType.Equal);
-      this.expression();
+      if (this.current.type === TokenType.Equal) {
+        this.consume(TokenType.Equal);
+        this.expression();
+      } else {
+        this.emit(OpCode.Null);
+      }
       this.declareVariable(name.value);
     }
   }

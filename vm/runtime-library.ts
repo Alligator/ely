@@ -26,6 +26,9 @@ async function read_line(): Promise<Value> {
 };
 
 function str(val: Value) {
+  if (val.type === ValueType.Null) {
+    throw new Error("cannot call string with a null value");
+  }
   return createValue(val.value.toString());
 };
 

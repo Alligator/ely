@@ -18,6 +18,11 @@ interface ValueNumber {
   value: number;
 }
 
+interface ValueNull {
+  type: ValueType.Null;
+  value: null;
+}
+
 interface ValueBool {
   type: ValueType.Bool;
   value: boolean;
@@ -46,6 +51,7 @@ interface ValueHashTable {
 type Value =
   ValueString
   | ValueNumber
+  | ValueNull
   | ValueBool
   | ValueNativeFunction
   | ValueFunction
@@ -88,6 +94,13 @@ function createValue(input: RawValue): Value {
   }
 
   throw new Error(`unrecognised value type: ${input}`);
+}
+
+function createNullValue(): Value {
+  return {
+    type: ValueType.Null,
+    value: null,
+  };
 }
 
 function createFunctionValue(name: string, arity: number, program: Program): Value {
@@ -142,6 +155,8 @@ function valueToString(val: Value): string {
   switch (val.type) {
     case ValueType.Number:
       return val.value.toString();
+    case ValueType.Null:
+      return "null";
     case ValueType.String:
       return `${val.value}`;
     case ValueType.NativeFunction:
@@ -169,6 +184,7 @@ export {
   RawValue,
   Program,
   createValue,
+  createNullValue,
   createFunctionValue,
   createHashTableValue,
   valueIsTruthy,

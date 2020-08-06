@@ -7,3 +7,9 @@ count = 5
 if count != 5 then
   print("failed reassingment :(")
 end
+
+var uninit
+uninit = 12
+if uninit != 12 then
+  print("failed :(")
+end

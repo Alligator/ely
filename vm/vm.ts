@@ -10,6 +10,7 @@ import {
   valueIsTruthy,
   valuesAreEqual,
   Program,
+  createNullValue,
 } from "./value.ts";
 import { disassembleNextOpCode } from "./disasm.ts";
 import { addRuntimeApi } from "./runtime-library.ts";
@@ -25,6 +26,7 @@ enum OpCode {
   GetHT = "GetHT",
 
   PushImmediate = "PushImmediate",
+  Null = "Null",
   Pop = "Pop",
   Add = "Add",
   Sub = "Sub",
@@ -204,6 +206,11 @@ class ElyVm {
           if (value) {
             this.push(value);
           }
+          break;
+        }
+
+        case OpCode.Null: {
+          this.push(createNullValue());
           break;
         }
 
