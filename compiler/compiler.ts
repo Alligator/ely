@@ -56,9 +56,19 @@ function padOrTruncateString(str: string, length: number): string {
 }
 
 type Locals = {
-  variables: { [name: string]: number },
+  variables: {
+    [name: string]: {
+      stackSlot: number,
+      isCaptured: boolean,
+    },
+  };
   parent: Locals | null;
-}
+};
+
+type UpValue = {
+  index: number;
+  isLocal: boolean;
+};
 
 type CompileFunctionResult = {
   program: Program;
@@ -75,13 +85,15 @@ class Compiler {
   debug = false;
   hadError = false;
 
+  enclosing: Compiler | undefined;
   locals: Locals = {
     variables: {},
     parent: null,
   };
   localCount = 0;
-  scopeDepth = 0;
+  upvalues: Array<UpValue> = [];
 
+  scopeDepth = 0;
   callDepth = 0;
 
   constructor(enclosingCompiler?: Compiler) {
@@ -90,6 +102,7 @@ class Compiler {
       return;
     }
 
+    this.enclosing = enclosingCompiler;
     this.lexer = enclosingCompiler.lexer;
     this.current = enclosingCompiler.current;
     this.previous = enclosingCompiler.previous;
@@ -177,7 +190,10 @@ class Compiler {
 
   declareVariable(name: string) {
     if (this.scopeDepth > 0) {
-      this.locals.variables[name] = this.localCount++;
+      this.locals.variables[name] = {
+        stackSlot: this.localCount++,
+        isCaptured: false
+      };
     } else {
       this.emit(OpCode.DefineGlobal, name);
     }
@@ -285,22 +301,22 @@ class Compiler {
 
     const fnCompiler = new Compiler(this);
 
-    this.beginScope();
-
     const result = fnCompiler.compileFunction();
     this.current = result.current;
     this.previous = result.previous;
 
-    this.endScope();
-
     this.consume(TokenType.End);
 
-    const fnValue = createFunctionValue(name, result.arity, result.program);
-    this.emitConstant(fnValue);
-    this.declareVariable(name);
+    const fnValue = createFunctionValue(name, result.arity, result.program, fnCompiler.upvalues.length);
+    // this.emitConstant(fnValue);
 
-    if (expression) {
-      this.emitConstant(fnValue);
+    this.emit(OpCode.Closure, fnValue);
+    fnCompiler.upvalues.forEach((upvalue) => {
+      this.emit(upvalue.isLocal ? 1 : 0, upvalue.index);
+    });
+
+    if (!expression) {
+      this.declareVariable(name);
     }
   }
 
@@ -374,7 +390,7 @@ class Compiler {
     this.debugEnter('block');
 
     this.beginScope();
-    while (!endings.includes(this.current.type)) {
+    while (!endings.includes(this.current.type) && this.current.type !== TokenType.EOF) {
       this.statement();
     }
 
@@ -594,14 +610,36 @@ class Compiler {
 
   private findLocal(name: string): number | undefined {
     let current: Locals | null = this.locals;
-    while (true) {
+    // while (true) {
       if (name in current.variables) {
-        return current.variables[name];
+        return current.variables[name].stackSlot;
       }
-      current = current.parent;
-      if (current === null) {
-        return;
-      }
+      // current = current.parent;
+      // if (current === null) {
+      //   return;
+      // }
+    // }
+  }
+
+  private addUpValue(index: number, isLocal: boolean): number {
+    this.upvalues.push({ index, isLocal });
+    return this.upvalues.length - 1;
+  }
+
+  findUpValue(name: string): number | undefined {
+    if (!this.enclosing) {
+      return;
+    }
+
+    const local = this.enclosing.findLocal(name);
+    if (typeof local !== "undefined") {
+      this.enclosing.locals.variables[name].isCaptured = true;
+      return this.addUpValue(local, true);
+    }
+
+    const upvalue = this.enclosing.findUpValue(name);
+    if (typeof upvalue !== "undefined") {
+      return this.addUpValue(upvalue, false);
     }
   }
 
@@ -618,9 +656,15 @@ class Compiler {
     let setOp = OpCode.SetLocal;
 
     if (typeof arg === "undefined") {
-      arg = token.value;
-      getOp = OpCode.GetGlobal;
-      setOp = OpCode.SetGlobal;
+      arg = this.findUpValue(token.value);
+      if (typeof arg === "undefined") {
+        arg = token.value;
+        getOp = OpCode.GetGlobal;
+        setOp = OpCode.SetGlobal;
+      } else {
+        getOp = OpCode.GetUpvalue;
+        setOp = OpCode.SetUpvalue;
+      }
     }
 
     if (this.current.type === TokenType.Equal) {
@@ -642,11 +686,16 @@ class Compiler {
 
     this.consume(TokenType.LParen);
 
+    this.beginScope();
+
     while (this.current.type !== TokenType.RParen) {
       this.consume(TokenType.Identifier);
       const name = this.previous;
       if (name.type === TokenType.Identifier) {
-        this.locals.variables[name.value] = this.localCount++;
+        this.locals.variables[name.value] = {
+          stackSlot: this.localCount++,
+          isCaptured: false,
+        };
       }
 
       arity++;
@@ -658,10 +707,14 @@ class Compiler {
 
     this.consume(TokenType.RParen);
 
-    this.block([TokenType.End]);
+    while (this.current.type as any !== TokenType.End && this.current.type as any !== TokenType.EOF) {
+      this.statement();
+    }
 
     // implicit return
     this.emit(OpCode.Return, 0);
+
+    this.endScope();
 
     return {
       program: this.output,

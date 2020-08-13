@@ -1,0 +1,16 @@
+function outer()
+  var outer_name = "outer alligator"
+  function middle()
+    var middle_name = "middle alligator"
+    function inner()
+      print(middle_name)
+      print(outer_name)
+    end
+    return inner
+  end
+  return middle
+end
+
+var mid = outer()
+var in = mid()
+in()

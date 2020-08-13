@@ -35,9 +35,22 @@ function disassembleNextOpCode(programCounter: number, code: Array<RawValue>): [
     case OpCode.SetGlobal:
     case OpCode.SetLocal:
     case OpCode.GetLocal:
+    case OpCode.SetUpvalue:
+    case OpCode.GetUpvalue:
     case OpCode.Return:
     case OpCode.CreateHT:
       return [oneArg(programCounter, code), 2];
+    case OpCode.Closure: {
+      const fn = code[programCounter + 1];
+      if (typeof fn === "object" && fn.type === ValueType.Function) {
+        let output = `Closure ${fn.name}()`;
+        for (let i = 0; i < fn.upValueCount * 2; i += 2) {
+          output += ` (${code[programCounter + i + 2]}, ${code[programCounter + i + 3]})`;
+        }
+        return [output, programCounter + fn.upValueCount * 2 + 2];
+      }
+      return ['', programCounter + 1];
+    }
     default:
       return [op.toString(), 1];
   }

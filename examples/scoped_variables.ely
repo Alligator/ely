@@ -30,3 +30,15 @@ if success != true then
   print("failed :(")
 end
 
+function test()
+  var name = "alligator"
+  print(name)
+  other_test()
+end
+
+function other_test()
+  var other_name = "crocodile"
+  print(other_name)
+end
+
+test()

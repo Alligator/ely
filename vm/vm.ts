@@ -11,6 +11,8 @@ import {
   valuesAreEqual,
   Program,
   createNullValue,
+  UpValue,
+  ValueFunction,
 } from "./value.ts";
 import { disassembleNextOpCode } from "./disasm.ts";
 import { addRuntimeApi } from "./runtime-library.ts";
@@ -24,6 +26,10 @@ enum OpCode {
   GetLocal = "GetLocal",
   CreateHT = "CreateHT",
   GetHT = "GetHT",
+
+  SetUpvalue = "SetUpvalue",
+  GetUpvalue = "GetUpvalue",
+  Closure = "Closure",
 
   PushImmediate = "PushImmediate",
   Null = "Null",
@@ -51,20 +57,29 @@ interface StackFrame {
   callingCode: Program;
   callingProgramCounter: number;
   stackBase: number;
+  closure: ValueFunction;
   // TODO is this a good idea?
   returnValue?: Value;
 }
 
 class ElyVm {
   code: Array<RawValue> = [];
+  programCounter: number = 0;
+
   globals: { [name: string]: Value } = {};
+
   stack: Array<Value> = [];
   callStack: Array<StackFrame> = [];
-  programCounter: number = 0;
+  openUpvalues: Array<UpValue> = [];
+
   debug: boolean = false;
 
   constructor() {
     addRuntimeApi(this);
+  }
+
+  get frame() {
+    return this.callStack[this.callStack.length - 1];
   }
 
   fatal(msg: string): never {
@@ -147,6 +162,22 @@ class ElyVm {
       this.fatal("attempted to jump beyond the end of the program");
     }
     this.programCounter = dest;
+  }
+
+  captureUpValue(index: number): UpValue {
+    const upValue = {
+      stackSlot: index,
+    };
+    this.openUpvalues.push(upValue);
+    return upValue;
+  }
+
+  closeUpvalues() {
+    this.openUpvalues.forEach((upvalue) => {
+      if (!upvalue.closed) {
+        upvalue.closed = this.stack[this.frame.stackBase + upvalue.stackSlot];
+      }
+    });
   }
 
   async run(code: Array<RawValue>): Promise<Value | undefined> {
@@ -326,6 +357,39 @@ class ElyVm {
 
           const value = ht.value[key.value];
           this.push(value);
+
+          break;
+        }
+
+        case OpCode.GetUpvalue: {
+          const index = this.readNumber("expected a number as an upvalue index");
+          const upvalue = this.frame.closure.upValues[index];
+          if (upvalue.closed) {
+            this.push(upvalue.closed);
+          } else {
+            this.push(this.stack[upvalue.stackSlot]);
+          }
+          break;
+        }
+
+        case OpCode.Closure: {
+          const fn = this.read();
+
+          if (typeof fn !== "object" || fn.type !== ValueType.Function) {
+            this.fatal('expected a function as an arg to closure');
+          }
+
+          for (let i = 0; i < fn.upValueCount; i++) {
+            const isLocal = this.readNumber('isLocal');
+            const index = this.readNumber('index');
+            if (isLocal) {
+              fn.upValues.push(this.captureUpValue(index));
+            } else {
+              fn.upValues.push(this.frame.closure.upValues[index]);
+            }
+          }
+
+          this.push(fn);
 
           break;
         }
@@ -512,6 +576,7 @@ class ElyVm {
                 callingCode: this.code,
                 callingProgramCounter: this.programCounter,
                 stackBase: this.stack.length - argCount - 1,
+                closure: func,
               });
 
               await this.run(func.value);
@@ -542,6 +607,8 @@ class ElyVm {
           if (typeof numValues !== "number") {
             this.fatal("expected a number for return");
           }
+
+          this.closeUpvalues();
 
           // TODO support > 1 return value
           let value ;

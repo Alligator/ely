@@ -40,6 +40,13 @@ interface ValueFunction {
   name: string;
   arity: number;
   value: Program;
+  upValueCount: number;
+  upValues: Array<UpValue>;
+}
+
+interface UpValue {
+  stackSlot: number;
+  closed?: Value;
 }
 
 interface ValueHashTable {
@@ -103,12 +110,14 @@ function createNullValue(): Value {
   };
 }
 
-function createFunctionValue(name: string, arity: number, program: Program): Value {
+function createFunctionValue(name: string, arity: number, program: Program, upValueCount: number): ValueFunction {
   return {
     type: ValueType.Function,
     value: program,
     name,
     arity,
+    upValueCount,
+    upValues: [],
   };
 }
 
@@ -181,6 +190,7 @@ export {
   Value,
   ValueNumber,
   ValueBool,
+  ValueFunction,
   RawValue,
   Program,
   createValue,
@@ -190,4 +200,5 @@ export {
   valueIsTruthy,
   valuesAreEqual,
   valueToString,
+  UpValue,
 };
