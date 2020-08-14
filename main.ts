@@ -2,7 +2,7 @@ import { Args, parse } from "https://deno.land/std/flags/mod.ts";
 import { Lexer, TokenType } from "./lexer.ts";
 import { ElyVm, OpCode } from "./vm/vm.ts";
 import { Compiler } from "./compiler/compiler.ts";
-import { RawValue } from "./vm/value.ts";
+import { RawValue, valueToString } from "./vm/value.ts";
 import { disassembleNextOpCode } from "./vm/disasm.ts";
 
 async function readLine() {
@@ -38,7 +38,7 @@ async function repl(args: Args) {
       const program = compiler.compile(line);
       const result = await vm.run(program);
       if (result) {
-        console.log(result?.value);
+        console.log(valueToString(result));
       }
     } catch (e) {
       console.error(e.message);
